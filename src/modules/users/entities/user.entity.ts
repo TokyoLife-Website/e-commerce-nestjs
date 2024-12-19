@@ -1,6 +1,9 @@
-import { Gender } from 'common/enum/gender.enum';
-import { Role } from 'common/enum/role.enum';
+import { Gender } from 'src/common/enum/gender.enum';
+import { Role } from 'src/common/enum/role.enum';
+import * as bcrypt from 'bcrypt';
 import {
+  BeforeInsert,
+  BeforeUpdate,
   Column,
   CreateDateColumn,
   Entity,
@@ -37,9 +40,21 @@ export class User {
   @Column({ type: 'enum', enum: Role, default: Role.User })
   role: Role;
 
+  @Column({ nullable: true })
+  avatar: string;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
   @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  async hashPassword() {
+    if (this.password) {
+      const salt = await bcrypt.genSalt(10);
+      this.password = await bcrypt.hash(this.password, salt);
+    }
+  }
 }
