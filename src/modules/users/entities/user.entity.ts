@@ -10,6 +10,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Exclude } from 'class-transformer';
 
 @Entity()
 export class User {
@@ -32,6 +33,7 @@ export class User {
   phone: string;
 
   @Column({ select: false })
+  @Exclude({ toPlainOnly: true })
   password: string;
 
   @Column({ type: 'enum', enum: Gender, default: Gender.MALE })
