@@ -8,14 +8,19 @@ import { UsersModule } from '../users/users.module';
 import { RedisConfigModule } from '../redis/redis.module';
 import { BullConfigModule } from '../bullMQ/bullMQ.module';
 import { EmailModule } from '../email/email.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Blacklist } from './entities/blacklist.entity';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
-    PassportModule,
-    JwtConfigModule,
     UsersModule,
-    RedisConfigModule,
+    ScheduleModule.forRoot(),
+    TypeOrmModule.forFeature([Blacklist]),
+    JwtConfigModule,
     BullConfigModule,
+    RedisConfigModule,
+    PassportModule,
     EmailModule,
   ],
   controllers: [AuthController],

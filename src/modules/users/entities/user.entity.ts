@@ -32,7 +32,7 @@ export class User {
   @Column({ unique: true })
   phone: string;
 
-  @Column({ select: false })
+  @Column()
   @Exclude({ toPlainOnly: true })
   password: string;
 

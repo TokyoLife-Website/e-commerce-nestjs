@@ -20,10 +20,6 @@ export class CustomValidationPipe implements PipeTransform<any> {
         acc[err.property] = Object.values(err.constraints || {});
         return acc;
       }, {});
-      console.log(errorDetails);
-      // const errorMessages = errors
-      //   .map((err) => Object.values(err.constraints).join(', '))
-      //   .join('; ');
       throw new BadRequestException({
         message: 'Validation failed',
         errors: errorDetails,
