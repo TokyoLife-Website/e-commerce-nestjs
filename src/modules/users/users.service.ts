@@ -71,4 +71,12 @@ export class UsersService {
     user.password = hashedPassword;
     await this.userRepository.save(user);
   }
+
+  async findOneByResetToken(resetToken: string): Promise<User> {
+    return await this.userRepository.findOneBy({ resetToken });
+  }
+
+  async save(user: User): Promise<User> {
+    return this.userRepository.save(user);
+  }
 }

@@ -7,9 +7,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Exclude } from 'class-transformer';
+import { Address } from 'src/modules/addresses/entities/address.entity';
 
 @Entity()
 export class User {
@@ -31,7 +34,8 @@ export class User {
   @Column({ unique: true })
   phone: string;
 
-  @Column({ select: false })
+  @Column()
+  @Exclude({ toPlainOnly: true })
   password: string;
 
   @Column({ type: 'enum', enum: Gender, default: Gender.MALE })
@@ -42,6 +46,15 @@ export class User {
 
   @Column({ nullable: true })
   avatar: string;
+
+  @OneToMany(() => Address, (address) => address.user)
+  addresses: Address[] | null;
+
+  @Column({ length: 32, unique: true, nullable: true })
+  resetToken: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  resetTokenExpires: Date;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

@@ -8,7 +8,7 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
 @Injectable()
-export class ValidationPipe implements PipeTransform<any> {
+export class CustomValidationPipe implements PipeTransform<any> {
   async transform(value: any, { metatype }: ArgumentMetadata) {
     if (!metatype || !this.toValidate(metatype)) {
       return value;
@@ -16,10 +16,14 @@ export class ValidationPipe implements PipeTransform<any> {
     const object = plainToInstance(metatype, value);
     const errors = await validate(object);
     if (errors.length > 0) {
-      const errorMessages = errors
-        .map((err) => Object.values(err.constraints).join(', '))
-        .join('; ');
-      throw new BadRequestException(`Validation failed: ${errorMessages}`);
+      const errorDetails = errors.reduce((acc, err) => {
+        acc[err.property] = Object.values(err.constraints || {});
+        return acc;
+      }, {});
+      throw new BadRequestException({
+        message: 'Validation failed',
+        errors: errorDetails,
+      });
     }
     return value;
   }
