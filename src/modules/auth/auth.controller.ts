@@ -17,6 +17,7 @@ import { LoginDto } from './dto/login.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { User } from '../users/entities/user.entity';
 import { JwtRefreshAuthGuard } from 'src/common/guards/jwt-refresh-auth.guard';
+import { DecodedTokenDto } from './dto/decoded-token.dto';
 
 @Public()
 @Controller('auth')
@@ -37,6 +38,17 @@ export class AuthController {
   @ResponseMessage('Register successfully!')
   async register(@Body() registerBody: CreateUserDto): Promise<any> {
     return this.authService.register(registerBody);
+  }
+
+  @Post('logout')
+  @UseGuards(JwtRefreshAuthGuard)
+  async logout(@Req() req: Request) {
+    const { attributes, refreshTokenExpiresAt } = req.user as DecodedTokenDto;
+    await this.authService.logout(
+      attributes.id,
+      req.body.refreshToken,
+      refreshTokenExpiresAt,
+    );
   }
 
   @Post('refresh-token')

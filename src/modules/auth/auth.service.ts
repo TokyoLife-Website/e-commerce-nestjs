@@ -130,6 +130,16 @@ export class AuthService {
     await this.mailQueue.add('sendForgotPasswordEmail', message);
   }
 
+  async logout(userId: number, refreshToken?: string, expiresAt?: Date) {
+    if (await this.isTokenBlacklisted(refreshToken, userId))
+      throw new UnauthorizedException('Invalid refresh token.');
+    await this.blacklistRepository.insert({
+      refreshToken,
+      expiresAt,
+      userId,
+    });
+  }
+
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
     const { newPassword, token } = resetPasswordDto;
     const user: User = await this.usersService.findOneByResetToken(token);
