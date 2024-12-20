@@ -7,10 +7,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
+import { Address } from 'src/modules/addresses/entities/address.entity';
 
 @Entity()
 export class User {
@@ -44,6 +46,9 @@ export class User {
 
   @Column({ nullable: true })
   avatar: string;
+
+  @OneToMany(() => Address, (address) => address.user)
+  addresses: Address[] | null;
 
   @Column({ length: 32, unique: true, nullable: true })
   resetToken: string;

@@ -16,6 +16,7 @@ import { JwtStrategy } from './modules/auth/strategies/jwt.strategy';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { CustomValidationPipe } from './common/pipes/validation.pipe';
+import { AddressesModule } from './modules/addresses/addresses.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { CustomValidationPipe } from './common/pipes/validation.pipe';
     DatabaseModule,
     UsersModule,
     AuthModule,
+    AddressesModule,
   ],
   controllers: [AppController],
   providers: [
