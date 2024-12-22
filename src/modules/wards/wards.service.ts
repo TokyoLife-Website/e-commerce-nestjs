@@ -11,13 +11,13 @@ export class WardsService {
 
   async findAllByDistrictId(districtId: number) {
     return await this.wardRepository.findBy({
-      district: { districtId },
+      district: { id: districtId },
     });
   }
 
-  async findOne(wardId: number): Promise<Ward> {
-    const ward = await this.wardRepository.findOneBy({ wardId });
-    if (!ward) throw new NotFoundException(`Ward with ID ${wardId} not found`);
+  async findOne(id: number): Promise<Ward> {
+    const ward = await this.wardRepository.findOneBy({ id });
+    if (!ward) throw new NotFoundException(`Ward with ID ${id} not found`);
     return ward;
   }
 }

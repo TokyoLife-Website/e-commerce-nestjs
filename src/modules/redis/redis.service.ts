@@ -8,14 +8,14 @@ export class RedisService {
   constructor(private readonly configService: ConfigService) {
     const redisHost = configService.get('REDIS_HOST');
     const redisPort = configService.get('REDIS_PORT');
-    const redisPass = configService.get('REDIS_PASSWORD');
-    const redisUser = configService.get('REDIS_USER');
+    // const redisPass = configService.get('REDIS_PASSWORD');
+    // const redisUser = configService.get('REDIS_USER');
     this.redis = new Redis({
       host: redisHost,
       port: redisPort,
-      password: redisPass,
-      username: redisUser,
-      tls: {},
+      // password: redisPass,
+      // username: redisUser,
+      // tls: {},
       enableTLSForSentinelMode: false,
     });
   }

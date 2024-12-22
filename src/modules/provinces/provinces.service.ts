@@ -14,12 +14,10 @@ export class ProvincesService {
     return await this.provinceRepository.find({});
   }
 
-  async findOne(provinceId: number): Promise<Province> {
-    const province = await this.provinceRepository.findOneBy({
-      provinceId,
-    });
+  async findOne(id: number): Promise<Province> {
+    const province = await this.provinceRepository.findOneBy({ id });
     if (!province)
-      throw new NotFoundException(`Province with ID ${provinceId} not found`);
+      throw new NotFoundException(`Province with ID ${id} not found`);
     return province;
   }
 }

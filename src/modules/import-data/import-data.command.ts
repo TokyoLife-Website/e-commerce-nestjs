@@ -10,12 +10,8 @@ export class ImportDataCommand {
   })
   async importProvince(): Promise<void> {
     await this.importDataService.importProvinces();
-    console.log('Provinces data imported successfully!');
-
     await this.importDataService.importDistricts();
-    console.log('Districts data imported successfully!');
-
     await this.importDataService.importWards();
-    console.log('Wards data imported successfully!');
+    console.log('Address data imported successfully!');
   }
 }

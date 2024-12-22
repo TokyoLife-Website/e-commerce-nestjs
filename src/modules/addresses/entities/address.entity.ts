@@ -13,6 +13,9 @@ export class Address {
   @Column()
   detail: string;
 
+  @Column()
+  userId: number;
+
   @ManyToOne(() => User, (user) => user.addresses)
   user: User;
 

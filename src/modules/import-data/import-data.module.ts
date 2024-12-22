@@ -5,7 +5,6 @@ import { Province } from '../provinces/entities/province.entity';
 import { District } from '../districts/entities/district.entity';
 import { Ward } from '../wards/entities/ward.entity';
 import { ImportDataCommand } from './import-data.command';
-import { ConsoleModule } from 'nestjs-console';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Province, District, Ward])],

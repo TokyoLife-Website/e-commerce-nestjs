@@ -36,17 +36,20 @@ export class ImportDataService {
     await workbook.xlsx.readFile(filePath);
     const worksheet = workbook.getWorksheet('provinces');
     const provinces = [];
-    worksheet.eachRow((row, rowNumber) => {
+    worksheet.eachRow(async (row, rowNumber) => {
       if (rowNumber === 1 || rowNumber === worksheet.rowCount) return;
       const rowData = {
-        provinceId: +row.getCell(1).value,
+        id: +row.getCell(1).value,
         name: row.getCell(2).value,
       };
       provinces.push(rowData);
+      if (provinces.length === this.batchSize) {
+        await this.provinceRepository.save(provinces);
+        provinces.length = 0;
+      }
     });
-    for (let i = 0; i < provinces.length; i += this.batchSize) {
-      const batch = provinces.slice(i, i + this.batchSize);
-      await this.provinceRepository.insert(batch);
+    if (provinces.length > 0) {
+      await this.provinceRepository.save(provinces);
     }
   }
 
@@ -56,12 +59,12 @@ export class ImportDataService {
     await workbook.xlsx.readFile(filePath);
     const worksheet = workbook.getWorksheet('districts');
     const districts = [];
-    worksheet.eachRow((row, rowNumber) => {
+    worksheet.eachRow(async (row, rowNumber) => {
       if (rowNumber === 1 || rowNumber === worksheet.rowCount) return;
       districts.push({
-        districtId: row.getCell(1).value,
+        id: row.getCell(1).value,
         name: row.getCell(2).value,
-        province: { provinceId: +row.getCell(5).value },
+        province: { id: +row.getCell(5).value },
       });
     });
     const promise = [];
@@ -82,16 +85,20 @@ export class ImportDataService {
     await workbook.xlsx.readFile(filePath);
     const worksheet = workbook.getWorksheet('wards');
     const wards = [];
-    worksheet.eachRow((row, rowNumber) => {
+    worksheet.eachRow(async (row, rowNumber) => {
       if (rowNumber === 1 || rowNumber === worksheet.rowCount) return;
       const districtId = +row.getCell(5).value;
       const wardName = row.getCell(2).value;
-      if (districtId) {
+      if (districtId && wardName) {
         wards.push({
-          wardId: +row.getCell(1).value,
-          name: wardName || 'N/A',
-          district: { districtId: +row.getCell(5).value },
+          id: +row.getCell(1).value,
+          name: wardName,
+          district: { id: +row.getCell(5).value },
         });
+      } else {
+        console.error(
+          `Invalid data at row ${rowNumber}: districtId=${districtId}, wardName=${wardName}`,
+        );
       }
     });
     const promise = [];

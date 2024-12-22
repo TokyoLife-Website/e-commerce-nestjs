@@ -12,14 +12,14 @@ export class DistrictsService {
 
   async findAllByProvinceId(provinceId: number) {
     return await this.districtRepository.findBy({
-      province: { provinceId },
+      province: { id: provinceId },
     });
   }
 
-  async findOne(districtId: number): Promise<District> {
-    const district = await this.districtRepository.findOneBy({ districtId });
+  async findOne(id: number): Promise<District> {
+    const district = await this.districtRepository.findOneBy({ id });
     if (!district)
-      throw new NotFoundException(`Distrit with ID ${districtId} not found`);
+      throw new NotFoundException(`Distrit with ID ${id} not found`);
     return district;
   }
 }

@@ -1,12 +1,9 @@
 import { District } from '../../districts/entities/district.entity';
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
 @Entity()
 export class Province {
-  @PrimaryGeneratedColumn()
+  @PrimaryColumn()
   id: number;
-
-  @Column({ unique: true })
-  provinceId: number;
 
   @Column({ length: 255 })
   name: string;
