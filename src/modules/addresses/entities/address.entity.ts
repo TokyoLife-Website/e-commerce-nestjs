@@ -1,9 +1,9 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
-import { Province } from 'src/modules/provinces/entities/province.entity';
-import { District } from 'src/modules/districts/entities/district.entity';
-import { Ward } from 'src/modules/wards/entities/ward.entity';
 import { AddressType } from 'src/common/enum/addressType.enum';
+import { District } from 'src/modules/districts/entities/district.entity';
+import { Province } from 'src/modules/provinces/entities/province.entity';
+import { User } from 'src/modules/users/entities/user.entity';
+import { Ward } from 'src/modules/wards/entities/ward.entity';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
 
 @Entity()
 export class Address {

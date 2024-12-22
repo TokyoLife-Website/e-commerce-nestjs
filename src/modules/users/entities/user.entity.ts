@@ -1,5 +1,3 @@
-import { Gender } from 'src/common/enum/gender.enum';
-import { Role } from 'src/common/enum/role.enum';
 import * as bcrypt from 'bcrypt';
 import {
   BeforeInsert,
@@ -12,6 +10,8 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
+import { Gender } from 'src/common/enum/gender.enum';
+import { Role } from 'src/common/enum/role.enum';
 import { Address } from 'src/modules/addresses/entities/address.entity';
 
 @Entity()
