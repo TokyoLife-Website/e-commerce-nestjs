@@ -17,6 +17,8 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { CustomValidationPipe } from './common/pipes/validation.pipe';
 import { AddressesModule } from './modules/addresses/addresses.module';
+import { ConsoleModule } from 'nestjs-console';
+import { ImportDataModule } from './modules/import-data/import-data.module';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { AddressesModule } from './modules/addresses/addresses.module';
     UsersModule,
     AuthModule,
     AddressesModule,
+    ConsoleModule,
+    ImportDataModule,
   ],
   controllers: [AppController],
   providers: [

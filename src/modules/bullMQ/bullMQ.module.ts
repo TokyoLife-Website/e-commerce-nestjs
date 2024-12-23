@@ -12,10 +12,10 @@ import { queueName } from 'src/common/constants/queueName';
         connection: {
           host: configService.get<string>('REDIS_HOST'),
           port: configService.get<number>('REDIS_PORT'),
-          password: configService.get<string>('REDIS_PASSWORD'),
-          username: configService.get<string>('REDIS_USER'),
+          // password: configService.get<string>('REDIS_PASSWORD'),
+          // username: configService.get<string>('REDIS_USER'),
           enableTLSForSentinelMode: false,
-          tls: {},
+          // tls: {},
         },
       }),
       inject: [ConfigService],

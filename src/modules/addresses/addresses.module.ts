@@ -10,12 +10,13 @@ import { Address } from './entities/address.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Address]),
+    TypeOrmModule.forFeature([Address, User]),
     ProvincesModule,
     DistrictsModule,
     WardsModule,
   ],
   controllers: [AddressesController],
   providers: [AddressesService],
+  exports: [AddressesService],
 })
 export class AddressesModule {}
