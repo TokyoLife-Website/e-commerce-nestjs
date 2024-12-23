@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -28,10 +32,7 @@ export class AddressesService {
     if (!user) {
       throw new NotFoundException(`User with id ${userId} not found!`);
     }
-    const userAddresses = await this.addressRepository.find({
-      where: { userId: user.id },
-    });
-    console.log(userAddresses);
+    const userAddresses = await this.findAllByUserId(userId);
     if (userAddresses.length === 0) {
       other.isDefault = true;
     } else {
@@ -53,19 +54,54 @@ export class AddressesService {
     return await this.addressRepository.save(newAddress);
   }
 
-  findAll() {
-    return `This action returns all addresses`;
+  async findAllByUserId(userId: number): Promise<Address[]> {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) {
+      throw new NotFoundException(`User with id ${userId} not found!`);
+    }
+    return await this.addressRepository.find({
+      where: { user: { id: userId } },
+      relations: ['province', 'district', 'ward'],
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} address`;
+  async update(
+    id: number,
+    updateAddressDto: UpdateAddressDto,
+  ): Promise<Address> {
+    const { provinceId, districtId, wardId, ...other } = updateAddressDto;
+    const address = await this.findOne(id);
+    provinceId &&
+      (address.province = await this.provincesService.findOne(provinceId));
+    districtId &&
+      (address.district = await this.districtsService.findOne(districtId));
+    wardId && (address.ward = await this.wardsService.findOne(wardId));
+    Object.assign(address, other);
+    if (other.isDefault) {
+      await this.addressRepository.update(
+        { user: address.user, isDefault: true },
+        { isDefault: false },
+      );
+    }
+    return await this.addressRepository.save(address);
   }
 
-  update(id: number, updateAddressDto: UpdateAddressDto) {
-    return `This action updates a #${id} address`;
+  async findOne(id: number): Promise<Address> {
+    const address = await this.addressRepository.findOne({
+      where: { id },
+      relations: ['province', 'district', 'ward'],
+    });
+    if (!address) {
+      throw new NotFoundException(`Address with id ${id} not found!`);
+    }
+    return address;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} address`;
+  async remove(id: number) {
+    const address = await this.findOne(id);
+    if (address.isDefault) {
+      throw new BadRequestException(`Cannot delete default address!`);
+    }
+    await this.addressRepository.remove(address);
   }
 }
