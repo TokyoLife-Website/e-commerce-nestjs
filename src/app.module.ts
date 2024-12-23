@@ -19,6 +19,7 @@ import { CustomValidationPipe } from './common/pipes/validation.pipe';
 import { AddressesModule } from './modules/addresses/addresses.module';
 import { ConsoleModule } from 'nestjs-console';
 import { ImportDataModule } from './modules/import-data/import-data.module';
+import { CategoriesModule } from './modules/categories/categories.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { ImportDataModule } from './modules/import-data/import-data.module';
     AuthModule,
     AddressesModule,
     ConsoleModule,
+    CategoriesModule,
     ImportDataModule,
   ],
   controllers: [AppController],
