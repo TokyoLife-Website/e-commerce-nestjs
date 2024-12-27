@@ -10,6 +10,6 @@ export class ProductSkuDto {
   size: string;
 
   @IsInt({ message: 'Quantity must be an integer.' })
-  @IsNotEmpty({ message: 'Quantity cannot be empty.' })
+  @IsOptional()
   quantity: number;
 }

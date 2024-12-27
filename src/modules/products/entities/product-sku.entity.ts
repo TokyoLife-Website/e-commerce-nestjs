@@ -1,6 +1,6 @@
-import { ProductAtributeType } from 'src/common/enum/productAtributeType.enum';
 import {
   BeforeInsert,
+  BeforeUpdate,
   Column,
   CreateDateColumn,
   Entity,
@@ -25,11 +25,8 @@ export class ProductSku {
   @Column()
   productId: number;
 
-  @Column({ type: 'varchar', unique: true })
+  @Column({ type: 'varchar', unique: true, nullable: true })
   sku: string;
-
-  // @Column({ type: 'simple-json', nullable: true })
-  // attributes: Record<ProductAtributeType, string>;
 
   @Column({ type: 'varchar' })
   size: string;
@@ -48,10 +45,14 @@ export class ProductSku {
 
   @BeforeInsert()
   generateSku() {
-    if (!this.sku) {
-      const productNameSlug = slugify(this.product.name, { lower: true });
-      const attributesSlug = `${this.color}-${this.size}`;
-      this.sku = `${productNameSlug}-${attributesSlug}`;
+    if (this.product && this.color && this.size) {
+      const productNameSku = this.product.slug
+        .split('-')
+        .reduce((acc, part) => acc + part.charAt(0).toUpperCase(), '');
+      const colorSku = this.color.charAt(0).toUpperCase();
+      const sizeSku = this.size.toUpperCase();
+      this.sku = `${productNameSku}-${colorSku}-${sizeSku}`;
+      this.sku = `${productNameSku}-${this.color.charAt(0).toUpperCase()}-${this.size.toUpperCase()}`;
     }
   }
 }

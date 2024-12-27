@@ -7,10 +7,13 @@ import { ProductAttribute } from './entities/product-attribute.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ProductSku } from './entities/product-sku.entity';
 import { Product } from './entities/product.entity';
+import { Category } from '../categories/entities/category.entity';
+import { CategoriesService } from '../categories/categories.service';
 
 @Injectable()
 export class ProductsService {
   constructor(
+    private readonly categoriesService: CategoriesService,
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
     @InjectRepository(ProductAttribute)
@@ -28,7 +31,23 @@ export class ProductsService {
   }
 
   async createProduct(createProductDto: CreateProductDto) {
-    console.log(createProductDto);
+    const { skus, categoryId, ...other } = createProductDto;
+    const category = await this.categoriesService.findOneById(categoryId);
+    const product = this.productRepository.create({
+      category,
+      ...other,
+    });
+    const savedProduct = await this.productRepository.save(product);
+    const productSkus = skus.map((sku) => {
+      const newSku = this.productSkuRepository.create({
+        product: savedProduct,
+        ...sku,
+      });
+
+      return newSku;
+    });
+    await this.productSkuRepository.save(productSkus);
+    return savedProduct;
   }
 
   findAll() {

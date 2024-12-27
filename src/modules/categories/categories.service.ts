@@ -33,6 +33,14 @@ export class CategoriesService {
     return category;
   }
 
+  async findOneById(id: number) {
+    const category = await this.categoryRepository.findOneBy({ id });
+    if (!category) {
+      throw new NotFoundException('Category not found!');
+    }
+    return category;
+  }
+
   async findAllByParentSlug(slug: string) {
     const parentCategory = await this.findOne(slug);
     return await this.categoryRepository.findDescendantsTree(parentCategory);

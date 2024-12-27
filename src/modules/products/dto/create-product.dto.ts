@@ -39,7 +39,7 @@ export class CreateProductDto {
   categoryId: number;
 
   @IsArray()
-  @ValidateNested({ each: true })
+  @ValidateNested({ each: true, message: '' })
   @ArrayMinSize(1)
   @Type(() => ProductSkuDto)
   skus: ProductSkuDto[];
