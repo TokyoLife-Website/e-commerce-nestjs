@@ -3,12 +3,14 @@ import {
   BeforeUpdate,
   Column,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   Tree,
   TreeChildren,
   TreeParent,
 } from 'typeorm';
 import slugify from 'slugify';
+import { Product } from 'src/modules/products/entities/product.entity';
 
 @Entity()
 @Tree('closure-table')
@@ -30,6 +32,9 @@ export class Category {
 
   @TreeParent()
   parent: Category;
+
+  @OneToMany(() => Product, (product) => product.category)
+  products: Product[];
 
   @BeforeInsert()
   @BeforeUpdate()

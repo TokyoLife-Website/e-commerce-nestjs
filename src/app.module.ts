@@ -20,6 +20,7 @@ import { AddressesModule } from './modules/addresses/addresses.module';
 import { ConsoleModule } from 'nestjs-console';
 import { ImportDataModule } from './modules/import-data/import-data.module';
 import { CategoriesModule } from './modules/categories/categories.module';
+import { ProductsModule } from './modules/products/products.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
     ConsoleModule,
     CategoriesModule,
     ImportDataModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [
