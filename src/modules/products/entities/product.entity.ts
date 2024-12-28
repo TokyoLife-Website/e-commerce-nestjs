@@ -46,7 +46,7 @@ export class Product {
   @JoinColumn({ name: 'categoryId' })
   category: Category;
 
-  @OneToMany(() => ProductSku, (sku) => sku.product)
+  @OneToMany(() => ProductSku, (sku) => sku.product, { eager: true })
   skus: ProductSku[];
 
   @Column('int', { default: 0 })

@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { CreateProductAttributeDto } from './dto/create-product-attribute.dto';
@@ -16,23 +20,28 @@ export class ProductsService {
     private readonly categoriesService: CategoriesService,
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
-    @InjectRepository(ProductAttribute)
-    private readonly productAttributeRepository: Repository<ProductAttribute>,
     @InjectRepository(ProductSku)
     private readonly productSkuRepository: Repository<ProductSku>,
+    // @InjectRepository(ProductAttribute)
+    // private readonly productAttributeRepository: Repository<ProductAttribute>,
   ) {}
 
-  async createProductAttribute(
-    createProductAttributeDto: CreateProductAttributeDto,
-  ) {
-    return await this.productAttributeRepository.save(
-      createProductAttributeDto,
-    );
-  }
+  // async createProductAttribute(
+  //   createProductAttributeDto: CreateProductAttributeDto,
+  // ) {
+  //   return await this.productAttributeRepository.save(
+  //     createProductAttributeDto,
+  //   );
+  // }
 
   async createProduct(createProductDto: CreateProductDto) {
     const { skus, categoryId, ...other } = createProductDto;
     const category = await this.categoriesService.findOneById(categoryId);
+    const isProductExisting = await this.productRepository.findOneBy({
+      name: createProductDto.name,
+    });
+    if (isProductExisting)
+      throw new BadRequestException('Product already exists');
     const product = this.productRepository.create({
       category,
       ...other,
@@ -54,15 +63,49 @@ export class ProductsService {
     return `This action returns all products`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} product`;
+  async findOneById(id: number): Promise<Product> {
+    const product = await this.productRepository.findOneBy({ id });
+    if (!product) throw new NotFoundException(`Product with #${id} not found`);
+    return product;
   }
 
-  update(id: number, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} product`;
+  async update(
+    id: number,
+    updateProductDto: UpdateProductDto,
+  ): Promise<Product> {
+    const product = await this.findOneById(id);
+    const { categoryId, skus, ...other } = updateProductDto;
+    if (categoryId) {
+      const category = await this.categoriesService.findOneById(categoryId);
+      product.category = category;
+    }
+    Object.assign(product, other);
+    await this.productRepository.save(product);
+    if (skus) {
+      const existingSkus = product.skus;
+      const skusToDelete = existingSkus.filter(
+        (existingSku) => !skus.some((sku) => sku.id === existingSku.id),
+      );
+      if (skusToDelete.length > 0) {
+        await this.productSkuRepository.remove(skusToDelete);
+      }
+      const skuSavePromises = skus.map(async (sku) => {
+        if (sku.id) {
+          const existingSku = await this.productSkuRepository.findOneBy({
+            id: sku.id,
+          });
+          if (existingSku) Object.assign(existingSku, sku);
+          return this.productSkuRepository.save(existingSku);
+        } else {
+          const newSku = this.productSkuRepository.create({
+            ...sku,
+            product,
+          });
+          return this.productSkuRepository.save(newSku);
+        }
+      });
+      await Promise.all(skuSavePromises);
+    }
+    return product;
   }
 }
