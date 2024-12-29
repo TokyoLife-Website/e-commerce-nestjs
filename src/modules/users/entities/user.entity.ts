@@ -13,6 +13,7 @@ import { Exclude } from 'class-transformer';
 import { Gender } from 'src/common/enum/gender.enum';
 import { Role } from 'src/common/enum/role.enum';
 import { Address } from 'src/modules/addresses/entities/address.entity';
+import { WishList } from 'src/modules/wishlist/entities/wishlist.entity';
 
 @Entity()
 export class User {
@@ -48,7 +49,10 @@ export class User {
   avatar: string;
 
   @OneToMany(() => Address, (address) => address.user)
-  addresses: Address[] | null;
+  addresses: Address[];
+
+  @OneToMany(() => WishList, (wishlist) => wishlist.user)
+  wishlist: WishList[];
 
   @Column({ length: 32, unique: true, nullable: true })
   resetToken: string;

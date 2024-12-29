@@ -21,6 +21,7 @@ import { ConsoleModule } from 'nestjs-console';
 import { ImportDataModule } from './modules/import-data/import-data.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ProductsModule } from './modules/products/products.module';
+import { WishlistModule } from './modules/wishlist/wishlist.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { ProductsModule } from './modules/products/products.module';
     CategoriesModule,
     ImportDataModule,
     ProductsModule,
+    WishlistModule,
   ],
   controllers: [AppController],
   providers: [
