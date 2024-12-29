@@ -13,6 +13,8 @@ import { ProductSku } from './entities/product-sku.entity';
 import { Product } from './entities/product.entity';
 import { Category } from '../categories/entities/category.entity';
 import { CategoriesService } from '../categories/categories.service';
+import { Pagination } from 'src/common/decorators/pagination-params.decorator';
+import { PaginationResource } from 'src/common/types/pagination-response.dto';
 
 @Injectable()
 export class ProductsService {
@@ -59,12 +61,31 @@ export class ProductsService {
     return savedProduct;
   }
 
-  findAll() {
-    return `This action returns all products`;
+  async findAll({
+    limit,
+    offset,
+    page,
+    size,
+  }: Pagination): Promise<PaginationResource<Partial<Product>>> {
+    const [products, total] = await this.productRepository.findAndCount({
+      order: { createdAt: 'DESC' },
+      take: limit,
+      skip: offset,
+    });
+    return {
+      items: products,
+      page,
+      size,
+      totalItems: total,
+      totalPages: Math.ceil(total / size),
+    };
   }
 
   async findOneById(id: number): Promise<Product> {
-    const product = await this.productRepository.findOneBy({ id });
+    const product = await this.productRepository.findOne({
+      where: { id },
+      relations: ['skus'],
+    });
     if (!product) throw new NotFoundException(`Product with #${id} not found`);
     return product;
   }
