@@ -9,7 +9,6 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Product } from './product.entity';
-import slugify from 'slugify';
 
 @Entity()
 export class ProductSku {
@@ -19,6 +18,7 @@ export class ProductSku {
   @ManyToOne(() => Product, (product) => product.skus, {
     nullable: false,
     onDelete: 'CASCADE',
+    eager: true,
   })
   product: Product;
 
