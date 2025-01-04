@@ -28,10 +28,10 @@ export class Product {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'decimal' })
+  @Column({ type: 'double' })
   price: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  @Column({ type: 'double', nullable: true })
   discountPrice: number;
 
   @Column({ default: true })

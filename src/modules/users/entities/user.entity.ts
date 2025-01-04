@@ -5,7 +5,9 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -14,6 +16,7 @@ import { Gender } from 'src/common/enum/gender.enum';
 import { Role } from 'src/common/enum/role.enum';
 import { Address } from 'src/modules/addresses/entities/address.entity';
 import { WishList } from 'src/modules/wishlist/entities/wishlist.entity';
+import { Cart } from 'src/modules/cart/entities/cart.entity';
 
 @Entity()
 export class User {
@@ -53,6 +56,10 @@ export class User {
 
   @OneToMany(() => WishList, (wishlist) => wishlist.user)
   wishlist: WishList[];
+
+  @OneToOne(() => Cart, (carts) => carts.user, { cascade: true })
+  @JoinColumn()
+  carts: Cart[];
 
   @Column({ length: 32, unique: true, nullable: true })
   resetToken: string;
