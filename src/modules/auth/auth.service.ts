@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
@@ -22,6 +23,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Blacklist } from './entities/blacklist.entity';
 import { LessThanOrEqual, Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { VerifyOTPDto } from './dto/verify-otp.dto';
 
 @Injectable()
 export class AuthService {
@@ -119,13 +121,13 @@ export class AuthService {
       'RESET_PASSWORD_TOKEN_EXPIRES',
     );
     await this.redisService.rateLimiter(user.id, 5, 60);
-    const token = randomBytes(16).toString('hex');
-    user.resetToken = token;
-    user.resetTokenExpires = new Date(Date.now() + tokenExpires * 60 * 1000); //5 minutes
+    const otp = Math.random().toString().slice(2, 8);
+    user.otp = otp;
+    user.otpExpires = new Date(Date.now() + tokenExpires * 60 * 1000); //5 minutes
     await this.usersService.save(user);
     const message = {
       user,
-      token,
+      otp,
     };
     await this.mailQueue.add('sendForgotPasswordEmail', message);
   }
@@ -140,16 +142,29 @@ export class AuthService {
     });
   }
 
+  async verifyOtp(dto: VerifyOTPDto) {
+    const user = await this.usersService.findOneByEmail(dto.email);
+    if (!user || user.otp !== dto.otp) {
+      throw new BadRequestException('Invalid OTP');
+    }
+
+    if (new Date() > new Date(user.otpExpires)) {
+      throw new BadRequestException('OTP has expired');
+    }
+
+    return true;
+  }
+
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
-    const { newPassword, token } = resetPasswordDto;
-    const user: User = await this.usersService.findOneByResetToken(token);
-    if (!user || user.resetTokenExpires < new Date())
-      throw new NotFoundException('Token not found or expired');
+    const { newPassword, email } = resetPasswordDto;
+    const user: User = await this.usersService.findOneByEmail(email);
+    if (!user || new Date(user.otpExpires) < new Date())
+      throw new NotFoundException('OTP not found or expired');
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
     user.password = hashedPassword;
-    user.resetToken = null;
-    user.resetTokenExpires = null;
+    user.otp = null;
+    user.otpExpires = null;
     await this.usersService.save(user);
   }
 }

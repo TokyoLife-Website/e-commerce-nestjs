@@ -12,32 +12,29 @@ export class EmailService {
     private readonly mailerService: MailerService,
   ) {
     this.mailGenerator = new Mailgen({
-      theme: 'neopolitan',
+      theme: 'default',
       product: {
-        name: 'Covid Tracker',
+        name: 'Tokyolife Ecomerce',
         link: this.configService.get<string>('CLIENT_BASE_URL'),
         logo: this.configService.get<string>('LOGO'),
-        logoHeight: '150px',
-        copyright: 'Copyright © 2024 Covid tracker. All rights reserved.',
+        copyright: 'Copyright © 2025 Tokyolife Ecomerce. All rights reserved.',
       },
     });
   }
 
-  generateResetPasswordTemplate(user: User, token: string) {
-    const resetPasswordLink = `${this.configService.get<string>('CLIENT_BASE_URL')}/reset-password/${token}`;
+  generateResetPasswordTemplate(user: User, otp: string) {
     const mailBody = {
       body: {
-        title: `HI ${user.firstName.toUpperCase()} ${user.lastName.toUpperCase()},`,
-        intro: [
-          'Forgot your password?',
-          'We received a request to reset the password for your account.',
-        ],
+        title: `HI ${user.firstName.toUpperCase()} ${user.lastName.toUpperCase()}`,
+        name: user.email,
+        intro:
+          'You have requested to reset your password. Here is your OTP code:',
         action: {
-          instructions: 'To reset the password, please click the button below:',
+          instructions: 'Click the button below to copy your OTP:',
           button: {
             color: '#22BC66',
-            text: 'Reset password your account',
-            link: resetPasswordLink,
+            text: otp,
+            link: '',
           },
         },
         outro:
@@ -49,8 +46,8 @@ export class EmailService {
     return this.mailGenerator.generate(mailBody);
   }
 
-  async sendForgotPasswordEmail(user: User, token: string): Promise<void> {
-    const html = this.generateResetPasswordTemplate(user, token);
+  async sendForgotPasswordEmail(user: User, otp: string): Promise<void> {
+    const html = this.generateResetPasswordTemplate(user, otp);
     await this.mailerService.sendMail({
       to: user.email,
       from: '"Support Team" <support@vaccineportal.com>',

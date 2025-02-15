@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsDate,
   IsEmail,
@@ -30,8 +30,11 @@ export class CreateUserDto {
   @IsNotEmpty()
   password: string;
 
-  @Type(() => Date)
-  @IsDate({ message: 'dob must be a valid date format (YYYY-MM-DD).' })
   @IsNotEmpty()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') return new Date(value); // Nếu là string, convert sang Date
+    return value; // Nếu là Date object, giữ nguyên
+  })
+  @IsDate({ message: 'dob must be a valid date format (YYYY-MM-DD).' })
   dob: Date;
 }

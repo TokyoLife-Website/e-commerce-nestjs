@@ -2,16 +2,17 @@ import {
   IsEmail,
   IsNotEmpty,
   IsString,
-  IsStrongPassword,
+  Length,
+  MinLength,
 } from 'class-validator';
 
-export class ResetPasswordDto {
+export class VerifyOTPDto {
   @IsEmail()
   @IsNotEmpty()
   @IsString()
   email: string;
 
-  @IsStrongPassword()
-  @IsNotEmpty()
-  newPassword: string;
+  @IsString()
+  @Length(6, 6)
+  otp: string;
 }

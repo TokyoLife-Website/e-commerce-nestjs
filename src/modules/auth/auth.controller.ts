@@ -18,6 +18,7 @@ import { LoginResponseDto } from './dto/login-response.dto';
 import { User } from '../users/entities/user.entity';
 import { JwtRefreshAuthGuard } from 'src/common/guards/jwt-refresh-auth.guard';
 import { DecodedTokenDto } from './dto/decoded-token.dto';
+import { VerifyOTPDto } from './dto/verify-otp.dto';
 
 @Public()
 @Controller('auth')
@@ -70,6 +71,12 @@ export class AuthController {
     @Body() forgotPasswordDto: ForgotPasswordDto,
   ): Promise<void> {
     await this.authService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Post('verify-otp')
+  @ResponseMessage('OTP verified successfully!')
+  async verifyOtp(@Body() dto: VerifyOTPDto) {
+    await this.authService.verifyOtp(dto);
   }
 
   @Post('reset-password')

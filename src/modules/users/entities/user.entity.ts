@@ -61,11 +61,11 @@ export class User {
   @JoinColumn()
   carts: Cart[];
 
-  @Column({ length: 32, unique: true, nullable: true })
-  resetToken: string;
+  @Column({ length: 6, unique: true, nullable: true })
+  otp?: string;
 
   @Column({ type: 'timestamp', nullable: true })
-  resetTokenExpires: Date;
+  otpExpires?: Date;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
