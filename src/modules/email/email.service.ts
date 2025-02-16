@@ -37,8 +37,7 @@ export class EmailService {
             link: '',
           },
         },
-        outro:
-          'This link will expire in 5 minutes. Please ignore this email if you did not request a password change',
+        outro: `This link will expire in ${this.configService.get<string>('RESET_PASSWORD_TOKEN_EXPIRES')} minutes. Please ignore this email if you did not request a password change`,
         greeting: 'Dear',
         signature: 'Sincerely',
       },
