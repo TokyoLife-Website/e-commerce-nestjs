@@ -6,14 +6,19 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { AddressesService } from './addresses.service';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { RolesGuard } from 'src/common/guards/role.guard';
+import { Role } from 'src/common/enum/role.enum';
+import { User } from '../users/entities/user.entity';
+import { UserParams } from 'src/common/decorators/user.decorator';
 
-@Public()
 @Controller('addresses')
 export class AddressesController {
   constructor(private readonly addressesService: AddressesService) {}
@@ -25,15 +30,25 @@ export class AddressesController {
 
   @Patch(':id')
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @UserParams() user: User,
+    @Param('id', ParseIntPipe) addressId: number,
     @Body() updateAddressDto: UpdateAddressDto,
   ) {
-    return await this.addressesService.update(+id, updateAddressDto);
+    return await this.addressesService.update(
+      +addressId,
+      user.id,
+      updateAddressDto,
+    );
   }
 
   @Delete(':id')
+  @Roles(Role.Admin)
+  @UseGuards(RolesGuard)
   @ResponseMessage('Address has been removed!')
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    await this.addressesService.remove(id);
+  async remove(
+    @Param('id', ParseIntPipe) addressId: number,
+    @UserParams() user: User,
+  ) {
+    await this.addressesService.remove(addressId, user.id);
   }
 }

@@ -50,6 +50,16 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with id ${id} not found!`);
     }
+    const existingEmail = await this.findOneByEmail(updateUserDto.email);
+    if (existingEmail && existingEmail.id !== id) {
+      throw new ConflictException('Email already exists!');
+    }
+    const existingPhone = await this.userRepository.findOneBy({
+      phone: updateUserDto.phone,
+    });
+    if (existingPhone && existingPhone.id !== id) {
+      throw new ConflictException('Phone already exists!');
+    }
     Object.assign(user, updateUserDto);
     return await this.userRepository.save(user);
   }

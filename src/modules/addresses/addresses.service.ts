@@ -36,10 +36,12 @@ export class AddressesService {
     if (userAddresses.length === 0) {
       other.isDefault = true;
     } else {
-      await this.addressRepository.update(
-        { user, isDefault: true },
-        { isDefault: false },
-      );
+      if (other.isDefault) {
+        await this.addressRepository.update(
+          { user, isDefault: true },
+          { isDefault: false },
+        );
+      }
     }
     const province = await this.provincesService.findOne(provinceId);
     const district = await this.districtsService.findOne(districtId);
@@ -61,16 +63,17 @@ export class AddressesService {
     }
     return await this.addressRepository.find({
       where: { user: { id: userId } },
-      relations: ['province', 'district', 'ward'],
+      relations: ['province', 'district', 'ward', 'user'],
     });
   }
 
   async update(
-    id: number,
+    addressId: number,
+    userId: number,
     updateAddressDto: UpdateAddressDto,
   ): Promise<Address> {
     const { provinceId, districtId, wardId, ...other } = updateAddressDto;
-    const address = await this.findOne(id);
+    const address = await this.findOne(addressId, userId);
     provinceId &&
       (address.province = await this.provincesService.findOne(provinceId));
     districtId &&
@@ -79,26 +82,26 @@ export class AddressesService {
     Object.assign(address, other);
     if (other.isDefault) {
       await this.addressRepository.update(
-        { user: address.user, isDefault: true },
+        { userId, isDefault: true },
         { isDefault: false },
       );
     }
     return await this.addressRepository.save(address);
   }
 
-  async findOne(id: number): Promise<Address> {
+  async findOne(addressId: number, userId: number): Promise<Address> {
     const address = await this.addressRepository.findOne({
-      where: { id },
+      where: { id: addressId, userId },
       relations: ['province', 'district', 'ward'],
     });
     if (!address) {
-      throw new NotFoundException(`Address with id ${id} not found!`);
+      throw new NotFoundException(`Address with id ${addressId} not found!`);
     }
     return address;
   }
 
-  async remove(id: number) {
-    const address = await this.findOne(id);
+  async remove(addressId: number, userId: number) {
+    const address = await this.findOne(addressId, userId);
     if (address.isDefault) {
       throw new BadRequestException(`Cannot delete default address!`);
     }

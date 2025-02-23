@@ -14,7 +14,6 @@ import { ResponseMessage } from 'src/common/decorators/response-message.decorato
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UserParams } from 'src/common/decorators/user.decorator';
 import { User } from './entities/user.entity';
-import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -22,16 +21,16 @@ export class UsersController {
     private readonly usersService: UsersService,
     private readonly addressesService: AddressesService,
   ) {}
-  @Get(':userId/addresses')
-  getAllAddress(@Param('userId', ParseIntPipe) userId: number) {
-    return this.addressesService.findAllByUserId(userId);
+  @Get('addresses')
+  getAllAddress(@UserParams() user: User) {
+    return this.addressesService.findAllByUserId(user.id);
   }
 
   @Put('change-password')
   @ResponseMessage('Update password successfully')
   async updatePassword(
     @Body() updatePasswordDto: UpdatePasswordDto,
-    @UserParams() user,
+    @UserParams() user: User,
   ) {
     await this.usersService.updatePassword(user.id, updatePasswordDto);
   }

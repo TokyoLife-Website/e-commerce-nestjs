@@ -12,7 +12,6 @@ export class MailConsumer extends WorkerHost {
   }
   async process(job: Job<any>): Promise<void> {
     const { user, otp } = job.data;
-    console.log(otp);
     await this.emailService.sendForgotPasswordEmail(user, otp);
   }
 }
