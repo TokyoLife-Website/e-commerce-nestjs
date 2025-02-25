@@ -11,7 +11,6 @@ import {
 import { AddressesService } from './addresses.service';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';
-import { Public } from 'src/common/decorators/public.decorator';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/guards/role.guard';
@@ -24,8 +23,11 @@ export class AddressesController {
   constructor(private readonly addressesService: AddressesService) {}
 
   @Post()
-  async create(@Body() createAddressDto: CreateAddressDto) {
-    return await this.addressesService.create(createAddressDto);
+  async create(
+    @UserParams() user: User,
+    @Body() createAddressDto: CreateAddressDto,
+  ) {
+    return await this.addressesService.create(user.id, createAddressDto);
   }
 
   @Patch(':id')
@@ -42,8 +44,6 @@ export class AddressesController {
   }
 
   @Delete(':id')
-  @Roles(Role.Admin)
-  @UseGuards(RolesGuard)
   @ResponseMessage('Address has been removed!')
   async remove(
     @Param('id', ParseIntPipe) addressId: number,

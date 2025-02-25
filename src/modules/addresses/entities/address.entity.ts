@@ -16,6 +16,15 @@ export class Address {
   @Column()
   userId: number;
 
+  @Column()
+  fullName: string;
+
+  @Column()
+  email: string;
+
+  @Column()
+  phone: string;
+
   @ManyToOne(() => User, (user) => user.addresses)
   user: User;
 

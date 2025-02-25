@@ -1,0 +1,36 @@
+version: '3.8'
+services:
+  db:
+    container_name: mysql-db
+    image: mysql:8.0
+    restart: always
+    env_file: ./.env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+    ports:
+      - '3307:3306' # 📌 Sử dụng cổng 3307 nếu 3306 bị trùng
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - app-network
+
+  redis:
+    container_name: redis
+    image: redis:latest
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - cache:/data
+    networks:
+      - app-network
+
+volumes:
+  db_data:
+  cache:
+
+networks:
+  app-network:

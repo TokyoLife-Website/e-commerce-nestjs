@@ -25,9 +25,8 @@ export class AddressesService {
     private wardsService: WardsService,
   ) {}
 
-  async create(createAddressDto: CreateAddressDto) {
-    const { userId, provinceId, districtId, wardId, ...other } =
-      createAddressDto;
+  async create(userId: number, createAddressDto: CreateAddressDto) {
+    const { provinceId, districtId, wardId, ...other } = createAddressDto;
     const user = await this.userRepository.findOneBy({ id: userId });
     if (!user) {
       throw new NotFoundException(`User with id ${userId} not found!`);
@@ -43,9 +42,16 @@ export class AddressesService {
         );
       }
     }
-    const province = await this.provincesService.findOne(provinceId);
-    const district = await this.districtsService.findOne(districtId);
-    const ward = await this.wardsService.findOne(wardId);
+    const [province, district, ward] = await Promise.all([
+      this.provincesService.findOne(provinceId),
+      this.districtsService.findOne(districtId),
+      this.wardsService.findOne(wardId),
+    ]).catch((error) => {
+      throw new BadRequestException(error.message);
+    });
+    // const province = await this.provincesService.findOne(provinceId);
+    // const district = await this.districtsService.findOne(districtId);
+    // const ward = await this.wardsService.findOne(wardId);
     const newAddress = this.addressRepository.create({
       user,
       province,

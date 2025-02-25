@@ -9,9 +9,6 @@ import {
 import { AddressType } from 'src/common/enum/addressType.enum';
 
 export class CreateAddressDto {
-  @IsNotEmpty()
-  userId: number;
-
   @IsEnum(AddressType)
   @IsOptional()
   type: AddressType;
