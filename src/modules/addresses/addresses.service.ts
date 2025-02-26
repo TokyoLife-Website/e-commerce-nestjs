@@ -79,20 +79,29 @@ export class AddressesService {
     updateAddressDto: UpdateAddressDto,
   ): Promise<Address> {
     const { provinceId, districtId, wardId, ...other } = updateAddressDto;
-    const address = await this.findOne(addressId, userId);
-    provinceId &&
-      (address.province = await this.provincesService.findOne(provinceId));
-    districtId &&
-      (address.district = await this.districtsService.findOne(districtId));
-    wardId && (address.ward = await this.wardsService.findOne(wardId));
-    Object.assign(address, other);
+    const currentAddress = await this.findOne(addressId, userId);
+    if (currentAddress.isDefault && !other.isDefault) {
+      throw new BadRequestException(
+        `Please select another address as default!`,
+      );
+    }
+    const [province, district, ward] = await Promise.all([
+      provinceId ? this.provincesService.findOne(provinceId) : null,
+      districtId ? this.districtsService.findOne(districtId) : null,
+      wardId ? this.wardsService.findOne(wardId) : null,
+    ]);
+
+    if (province) currentAddress.province = province;
+    if (district) currentAddress.district = district;
+    if (ward) currentAddress.ward = ward;
     if (other.isDefault) {
       await this.addressRepository.update(
         { userId, isDefault: true },
         { isDefault: false },
       );
     }
-    return await this.addressRepository.save(address);
+    Object.assign(currentAddress, other);
+    return await this.addressRepository.save(currentAddress);
   }
 
   async findOne(addressId: number, userId: number): Promise<Address> {

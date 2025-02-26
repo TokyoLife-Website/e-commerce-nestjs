@@ -6,15 +6,11 @@ import {
   Param,
   Delete,
   ParseIntPipe,
-  UseGuards,
 } from '@nestjs/common';
 import { AddressesService } from './addresses.service';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { RolesGuard } from 'src/common/guards/role.guard';
-import { Role } from 'src/common/enum/role.enum';
 import { User } from '../users/entities/user.entity';
 import { UserParams } from 'src/common/decorators/user.decorator';
 
