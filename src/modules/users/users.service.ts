@@ -11,11 +11,13 @@ import * as bcrypt from 'bcrypt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { UploadService } from '../upload/upload.service';
 
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectRepository(User) private userRepository: Repository<User>,
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
+    private uploadService: UploadService,
   ) {}
   async create(createUserDto: CreateUserDto): Promise<User> {
     const { email, phone } = createUserDto;
@@ -32,8 +34,9 @@ export class UsersService {
   }
 
   async findOne(id: number): Promise<User> {
-    const user = await this.userRepository.findOneBy({
-      id,
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: ['avatar'],
     });
     if (!user) {
       throw new NotFoundException(`User with id ${id} not found!`);
@@ -45,11 +48,16 @@ export class UsersService {
     return await this.userRepository.findOneBy({ email });
   }
 
+  async uploadAvatar(userId: number, file: Express.Multer.File) {
+    const user = await this.findOne(userId);
+    if (user.avatar?.id) await this.uploadService.deleteImage(user.avatar.id);
+    const avatar = await this.uploadService.uploadSingleImage(file, 'avatar');
+    user.avatar = avatar;
+    return await this.save(user);
+  }
+
   async updateUser(id: number, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
-    if (!user) {
-      throw new NotFoundException(`User with id ${id} not found!`);
-    }
     const existingEmail = await this.findOneByEmail(updateUserDto.email);
     if (existingEmail && existingEmail.id !== id) {
       throw new ConflictException('Email already exists!');

@@ -6,6 +6,9 @@ import {
   Param,
   ParseIntPipe,
   Put,
+  Post,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -14,6 +17,7 @@ import { ResponseMessage } from 'src/common/decorators/response-message.decorato
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UserParams } from 'src/common/decorators/user.decorator';
 import { User } from './entities/user.entity';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('users')
 export class UsersController {
@@ -33,6 +37,20 @@ export class UsersController {
     @UserParams() user: User,
   ) {
     await this.usersService.updatePassword(user.id, updatePasswordDto);
+  }
+
+  @Post('avatar')
+  @UseInterceptors(FileInterceptor('avatar'))
+  async uploadAvatar(
+    @UserParams() user: User,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return await this.usersService.uploadAvatar(user.id, file);
+  }
+
+  @Get('me')
+  getCurrentUser(@UserParams() user: User) {
+    return this.usersService.findOne(user.id);
   }
 
   @Get(':id')

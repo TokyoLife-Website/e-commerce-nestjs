@@ -23,6 +23,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
 import { ProductsModule } from './modules/products/products.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { CartModule } from './modules/cart/cart.module';
+import { UploadModule } from './modules/upload/upload.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { CartModule } from './modules/cart/cart.module';
     ProductsModule,
     WishlistModule,
     CartModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [

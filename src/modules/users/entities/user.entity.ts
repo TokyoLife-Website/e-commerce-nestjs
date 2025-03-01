@@ -17,11 +17,16 @@ import { Role } from 'src/common/enum/role.enum';
 import { Address } from 'src/modules/addresses/entities/address.entity';
 import { WishList } from 'src/modules/wishlist/entities/wishlist.entity';
 import { Cart } from 'src/modules/cart/entities/cart.entity';
+import { Image } from '../../upload/entities/image.entity';
 
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @OneToOne(() => Image, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn()
+  avatar: Image;
 
   @Column()
   firstName: string;
@@ -47,9 +52,6 @@ export class User {
 
   @Column({ type: 'enum', enum: Role, default: Role.User })
   role: Role;
-
-  @Column({ nullable: true })
-  avatar: string;
 
   @OneToMany(() => Address, (address) => address.user)
   addresses: Address[];
