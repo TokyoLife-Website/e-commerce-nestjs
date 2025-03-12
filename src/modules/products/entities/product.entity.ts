@@ -13,6 +13,7 @@ import {
 } from 'typeorm';
 import { ProductSku } from './product-sku.entity';
 import slugify from 'slugify';
+import { DiscountType } from 'src/common/enum/discountType.enum';
 
 @Entity()
 export class Product {
@@ -31,8 +32,16 @@ export class Product {
   @Column({ type: 'double' })
   price: number;
 
+  @Column({
+    type: 'enum',
+    enum: DiscountType,
+    nullable: true,
+    default: DiscountType.NONE,
+  })
+  discountType: DiscountType;
+
   @Column({ type: 'double', nullable: true })
-  discountPrice: number;
+  discountValue: number;
 
   @Column({ default: true })
   isActive: boolean;

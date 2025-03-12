@@ -2,16 +2,19 @@ import {
   ArrayMinSize,
   IsArray,
   IsDecimal,
+  IsEnum,
   IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
   IsString,
+  Min,
   ValidateNested,
 } from 'class-validator';
 import { ProductSkuDto } from './create-product-sku.entity';
 import { Type } from 'class-transformer';
+import { DiscountType } from 'src/common/enum/discountType.enum';
 
 export class CreateProductDto {
   @IsString()
@@ -26,9 +29,14 @@ export class CreateProductDto {
   @IsPositive()
   price: number;
 
+  @IsOptional()
+  @IsEnum(DiscountType)
+  discountType?: DiscountType;
+
   @IsDecimal()
   @IsOptional()
-  discountPrice?: number;
+  @Min(0)
+  discountValue?: number;
 
   @IsArray()
   @IsOptional()
