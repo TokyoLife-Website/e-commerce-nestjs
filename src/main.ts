@@ -1,9 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
+import { join } from 'path';
+import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.use('/uploads', express.static(join(process.cwd(), 'assets/uploads')));
   const configService = app.get(ConfigService);
   const PORT = +configService.get<number>('PORT');
   app.enableCors({

@@ -8,6 +8,8 @@ import {
   Delete,
   UseGuards,
   ParseIntPipe,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -20,6 +22,7 @@ import {
   Pagination,
   PaginationParams,
 } from 'src/common/decorators/pagination-params.decorator';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('products')
 export class ProductsController {
@@ -40,10 +43,12 @@ export class ProductsController {
   @Roles(Role.Admin)
   @UseGuards(RolesGuard)
   async createProduct(@Body() createProductDto: CreateProductDto) {
+    console.log(createProductDto);
     return this.productsService.createProduct(createProductDto);
   }
 
   @Get()
+  @Public()
   findAll(@PaginationParams() paginationParams: Pagination) {
     return this.productsService.findAll(paginationParams);
   }

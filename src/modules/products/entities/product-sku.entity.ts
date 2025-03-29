@@ -42,17 +42,4 @@ export class ProductSku {
 
   @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
-
-  @BeforeInsert()
-  generateSku() {
-    if (this.product && this.color && this.size) {
-      const productNameSku = this.product.slug
-        .split('-')
-        .reduce((acc, part) => acc + part.charAt(0).toUpperCase(), '');
-      const colorSku = this.color.charAt(0).toUpperCase();
-      const sizeSku = this.size.toUpperCase();
-      this.sku = `${productNameSku}-${colorSku}-${sizeSku}`;
-      this.sku = `${productNameSku}-${this.color.charAt(0).toUpperCase()}-${this.size.toUpperCase()}`;
-    }
-  }
 }

@@ -14,6 +14,7 @@ export class ImportDataService {
     __dirname,
     '..',
     '..',
+    '..',
     'assets',
     'excel',
   );

@@ -5,7 +5,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
-import { CloudinaryConfig } from './cloudinary.config';
 import { Image } from './entities/image.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -13,7 +12,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 @Injectable()
 export class UploadService {
   constructor(
-    private readonly cloudinaryConfig: CloudinaryConfig,
     @InjectRepository(Image)
     private readonly imageRepository: Repository<Image>,
   ) {}

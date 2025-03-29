@@ -17,7 +17,7 @@ import { DiscountType } from 'src/common/enum/discountType.enum';
 
 @Entity()
 export class Product {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('increment')
   id: number;
 
   @Column({ type: 'varchar', unique: true })

@@ -33,7 +33,7 @@ export class CreateProductDto {
   @IsEnum(DiscountType)
   discountType?: DiscountType;
 
-  @IsDecimal()
+  @IsNumber()
   @IsOptional()
   @Min(0)
   discountValue?: number;

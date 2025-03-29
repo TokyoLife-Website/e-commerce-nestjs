@@ -24,6 +24,7 @@ import { ProductsModule } from './modules/products/products.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { CartModule } from './modules/cart/cart.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { MulterModule } from './modules/multer/multer.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { UploadModule } from './modules/upload/upload.module';
     WishlistModule,
     CartModule,
     UploadModule,
+    MulterModule,
   ],
   controllers: [AppController],
   providers: [

@@ -6,7 +6,7 @@ import {
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { CreateProductAttributeDto } from './dto/create-product-attribute.dto';
-import { In, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { ProductAttribute } from './entities/product-attribute.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ProductSku } from './entities/product-sku.entity';
@@ -24,8 +24,7 @@ export class ProductsService {
     private readonly productRepository: Repository<Product>,
     @InjectRepository(ProductSku)
     private readonly productSkuRepository: Repository<ProductSku>,
-    // @InjectRepository(ProductAttribute)
-    // private readonly productAttributeRepository: Repository<ProductAttribute>,
+    private readonly dataSource: DataSource,
   ) {}
 
   // async createProductAttribute(
@@ -37,28 +36,72 @@ export class ProductsService {
   // }
 
   async createProduct(createProductDto: CreateProductDto) {
-    const { skus, categoryId, ...other } = createProductDto;
-    const category = await this.categoriesService.findOneById(categoryId);
-    const isProductExisting = await this.productRepository.findOneBy({
-      name: createProductDto.name,
-    });
-    if (isProductExisting)
-      throw new BadRequestException('Product already exists');
-    const product = this.productRepository.create({
-      category,
-      ...other,
-    });
-    const savedProduct = await this.productRepository.save(product);
-    const productSkus = skus.map((sku) => {
-      const newSku = this.productSkuRepository.create({
-        product: savedProduct,
-        ...sku,
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const { skus, categoryId, ...other } = createProductDto;
+      const category = await this.categoriesService.findOneById(categoryId);
+      const isProductExisting = await queryRunner.manager.findOne(
+        this.productRepository.target,
+        {
+          where: { name: createProductDto.name },
+        },
+      );
+      if (isProductExisting)
+        throw new BadRequestException('Product already exists');
+      const product = queryRunner.manager.create(
+        this.productRepository.target,
+        {
+          category,
+          ...other,
+        },
+      );
+      const savedProduct = await queryRunner.manager.save(product);
+      const skuCodes = skus.map((skuItem) => {
+        const productNameSku = String(savedProduct.id).padStart(6, '0');
+        const colorSku = skuItem.color.charAt(0).toUpperCase();
+        const sizeSku = skuItem.size.toUpperCase();
+        return `${productNameSku}-${colorSku}-${sizeSku}`;
       });
+      const uniqueSkuCodes = new Set(skuCodes);
+      if (uniqueSkuCodes.size !== skuCodes.length) {
+        throw new BadRequestException(
+          'Some SKU codes are duplicated in the request',
+        );
+      }
 
-      return newSku;
-    });
-    await this.productSkuRepository.save(productSkus);
-    return savedProduct;
+      const existingSkus = await queryRunner.manager.find(
+        this.productSkuRepository.target,
+        {
+          where: { sku: In([...uniqueSkuCodes]) },
+        },
+      );
+
+      if (existingSkus.length > 0) {
+        throw new BadRequestException(
+          'Some SKUs already exist in the database',
+        );
+      }
+
+      const productSkus = skus.map((skuItem, index) => {
+        const newSku = this.productSkuRepository.create({
+          product: savedProduct,
+          sku: skuCodes[index],
+          ...skuItem,
+        });
+        return newSku;
+      });
+      await queryRunner.manager.save(productSkus);
+      await queryRunner.commitTransaction();
+
+      return savedProduct;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async findAll({
