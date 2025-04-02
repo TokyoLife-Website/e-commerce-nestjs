@@ -111,6 +111,7 @@ export class ProductsService {
     size,
   }: Pagination): Promise<PaginationResource<Partial<Product>>> {
     const [products, total] = await this.productRepository.findAndCount({
+      relations: ['category', 'skus'],
       order: { createdAt: 'DESC' },
       take: limit,
       skip: offset,
