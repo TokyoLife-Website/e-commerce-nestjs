@@ -53,6 +53,7 @@ export class ProductsService {
       const product = queryRunner.manager.create(
         this.productRepository.target,
         {
+          stock: skus?.reduce((total, sku) => total + sku.quantity, 0) || 0,
           category,
           ...other,
         },

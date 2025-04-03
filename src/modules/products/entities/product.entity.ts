@@ -1,5 +1,6 @@
 import { Category } from 'src/modules/categories/entities/category.entity';
 import {
+  AfterLoad,
   BeforeInsert,
   BeforeUpdate,
   Column,
@@ -57,6 +58,9 @@ export class Product {
 
   @OneToMany(() => ProductSku, (sku) => sku.product)
   skus: ProductSku[];
+
+  @Column('int', { default: 0 })
+  stock: number;
 
   @Column('int', { default: 0 })
   soldCount: number;
