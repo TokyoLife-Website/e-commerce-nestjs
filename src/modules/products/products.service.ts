@@ -5,16 +5,14 @@ import {
 } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { CreateProductAttributeDto } from './dto/create-product-attribute.dto';
 import { DataSource, In, Repository } from 'typeorm';
-import { ProductAttribute } from './entities/product-attribute.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ProductSku } from './entities/product-sku.entity';
 import { Product } from './entities/product.entity';
-import { Category } from '../categories/entities/category.entity';
 import { CategoriesService } from '../categories/categories.service';
 import { Pagination } from 'src/common/decorators/pagination-params.decorator';
 import { PaginationResource } from 'src/common/types/pagination-response.dto';
+import { ProductSkuDto } from './dto/create-product-sku.entity';
 
 @Injectable()
 export class ProductsService {
@@ -146,32 +144,79 @@ export class ProductsService {
       product.category = category;
     }
     Object.assign(product, other);
-    await this.productRepository.save(product);
+    (product.stock =
+      skus?.reduce((total, sku) => total + sku.quantity, 0) || 0),
+      await this.productRepository.save(product);
     if (skus) {
-      const existingSkus = product.skus;
-      const skusToDelete = existingSkus.filter(
-        (existingSku) => !skus.some((sku) => sku.id === existingSku.id),
-      );
-      if (skusToDelete.length > 0) {
-        await this.productSkuRepository.remove(skusToDelete);
+      const { newSkus, updateSkus, deleteSkuIds } =
+        await this.covertDataUpdateProductSkus(skus, product.id);
+      if (deleteSkuIds.length > 0) {
+        await this.productSkuRepository.delete(deleteSkuIds);
       }
-      const skuSavePromises = skus.map(async (sku) => {
-        if (sku.id) {
-          const existingSku = await this.productSkuRepository.findOneBy({
-            id: sku.id,
-          });
-          if (existingSku) Object.assign(existingSku, sku);
-          return this.productSkuRepository.save(existingSku);
-        } else {
-          const newSku = this.productSkuRepository.create({
-            ...sku,
-            product,
-          });
-          return this.productSkuRepository.save(newSku);
-        }
-      });
-      await Promise.all(skuSavePromises);
+      await this.productSkuRepository.save(newSkus);
+      for (const updateSkuItem of updateSkus) {
+        await this.productSkuRepository.update(updateSkuItem.id, {
+          size: updateSkuItem.size,
+          color: updateSkuItem.color,
+          quantity: updateSkuItem.quantity,
+          sku: `${String(product.id).padStart(6, '0')}-${updateSkuItem.color
+            .charAt(0)
+            .toUpperCase()}-${updateSkuItem.size.toUpperCase()}`,
+        });
+      }
     }
     return product;
+  }
+
+  async covertDataUpdateProductSkus(
+    skus: Array<ProductSkuDto>,
+    productId: number,
+  ) {
+    const newSkus = skus
+      .filter((item) => !item?.id)
+      .map((item) => ({
+        productId,
+        size: item.size,
+        color: item.color,
+        quantity: item.quantity,
+        sku: `${String(productId).padStart(6, '0')}-${item.color.charAt(0).toUpperCase()}-${item.size.toUpperCase()}`,
+      }));
+
+    let updateSkus = [];
+    let deleteSkuIds = [];
+
+    const existingSkus = await this.productSkuRepository.find({
+      where: {
+        productId,
+      },
+    });
+
+    for (const existing of existingSkus) {
+      const matched = skus.find((sku) => sku.id === existing.id);
+      if (matched) {
+        // Check if any field was actually changed
+        const isUpdated =
+          matched.size !== existing.size ||
+          matched.color !== existing.color ||
+          matched.quantity !== existing.quantity;
+
+        if (isUpdated) {
+          updateSkus.push({
+            id: existing.id,
+            size: matched.size,
+            color: matched.color,
+            quantity: matched.quantity,
+          });
+        }
+      } else {
+        deleteSkuIds.push(existing.id);
+      }
+    }
+
+    return {
+      newSkus,
+      updateSkus,
+      deleteSkuIds,
+    };
   }
 }
