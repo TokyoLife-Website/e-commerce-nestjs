@@ -13,6 +13,7 @@ import { CategoriesService } from '../categories/categories.service';
 import { Pagination } from 'src/common/decorators/pagination-params.decorator';
 import { PaginationResource } from 'src/common/types/pagination-response.dto';
 import { ProductSkuDto } from './dto/create-product-sku.entity';
+import { MulterService } from '../multer/multer.service';
 
 @Injectable()
 export class ProductsService {
@@ -23,6 +24,7 @@ export class ProductsService {
     @InjectRepository(ProductSku)
     private readonly productSkuRepository: Repository<ProductSku>,
     private readonly dataSource: DataSource,
+    private readonly multerService: MulterService,
   ) {}
 
   // async createProductAttribute(
@@ -137,35 +139,50 @@ export class ProductsService {
     id: number,
     updateProductDto: UpdateProductDto,
   ): Promise<Product> {
-    const product = await this.findOneById(id);
-    const { categoryId, skus, ...other } = updateProductDto;
-    if (categoryId) {
-      const category = await this.categoriesService.findOneById(categoryId);
-      product.category = category;
-    }
-    Object.assign(product, other);
-    (product.stock =
-      skus?.reduce((total, sku) => total + sku.quantity, 0) || 0),
-      await this.productRepository.save(product);
-    if (skus) {
-      const { newSkus, updateSkus, deleteSkuIds } =
-        await this.covertDataUpdateProductSkus(skus, product.id);
-      if (deleteSkuIds.length > 0) {
-        await this.productSkuRepository.delete(deleteSkuIds);
+    return await this.dataSource.transaction(async (manager) => {
+      const product = await this.findOneById(id);
+      const { categoryId, skus, ...other } = updateProductDto;
+      if (categoryId) {
+        const category = await this.categoriesService.findOneById(categoryId);
+        product.category = category;
       }
-      await this.productSkuRepository.save(newSkus);
-      for (const updateSkuItem of updateSkus) {
-        await this.productSkuRepository.update(updateSkuItem.id, {
-          size: updateSkuItem.size,
-          color: updateSkuItem.color,
-          quantity: updateSkuItem.quantity,
-          sku: `${String(product.id).padStart(6, '0')}-${updateSkuItem.color
-            .charAt(0)
-            .toUpperCase()}-${updateSkuItem.size.toUpperCase()}`,
-        });
+      const oldImages = product.images || [];
+      const newImages = other.images || [];
+      const deletedImages = oldImages.filter(
+        (image) => !newImages.includes(image),
+      );
+      console.log(deletedImages);
+      if (deletedImages.length > 0) {
+        for (const imageUrl of deletedImages) {
+          const fileName = imageUrl.split('/').pop();
+          await this.multerService.deleteImage(fileName);
+        }
       }
-    }
-    return product;
+      product.images = newImages;
+      product.stock =
+        skus?.reduce((total, sku) => total + sku.quantity, 0) || 0;
+      Object.assign(product, other);
+      await manager.save(product);
+      if (skus) {
+        const { newSkus, updateSkus, deleteSkuIds } =
+          await this.covertDataUpdateProductSkus(skus, product.id);
+        if (deleteSkuIds.length > 0) {
+          await manager.delete(ProductSku, deleteSkuIds);
+        }
+        await manager.save(ProductSku, newSkus);
+        for (const sku of updateSkus) {
+          await manager.update(ProductSku, sku.id, {
+            size: sku.size,
+            color: sku.color,
+            quantity: sku.quantity,
+            sku: `${String(product.id).padStart(6, '0')}-${sku.color
+              .charAt(0)
+              .toUpperCase()}-${sku.size.toUpperCase()}`,
+          });
+        }
+      }
+      return product;
+    });
   }
 
   async covertDataUpdateProductSkus(

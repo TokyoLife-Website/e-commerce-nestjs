@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 import { MulterModule as NestMulterModule } from '@nestjs/platform-express';
-import { MulterConfigService } from './multer.service';
+import { MulterConfigService } from './multer.config';
 import { MulterController } from './multer.controller';
+import { MulterService } from './multer.service';
 
 @Module({
   imports: [
@@ -10,7 +11,7 @@ import { MulterController } from './multer.controller';
     }),
   ],
   controllers: [MulterController],
-  providers: [MulterConfigService],
-  exports: [NestMulterModule],
+  providers: [MulterConfigService, MulterService],
+  exports: [NestMulterModule, MulterService],
 })
 export class MulterModule {}

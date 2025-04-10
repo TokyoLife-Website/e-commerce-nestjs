@@ -1,32 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import {
-  MulterOptionsFactory,
-  MulterModuleOptions,
-} from '@nestjs/platform-express';
-import * as multer from 'multer';
-import * as fs from 'fs';
 import { join } from 'path';
+import { unlink } from 'fs/promises';
 
 @Injectable()
-export class MulterConfigService implements MulterOptionsFactory {
-  createMulterOptions(): MulterModuleOptions {
-    const uploadDir = join(process.cwd(), 'assets/uploads');
-    return {
-      storage: multer.diskStorage({
-        destination: (req, file, cb) => {
-          if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-          }
-          cb(null, uploadDir);
-        },
-        filename: (req, file, cb) => {
-          const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const fileName = `${uniqueSuffix}-${file.originalname}`;
-          cb(null, fileName);
-        },
-      }),
-      preservePath: false,
-    };
+export class MulterService {
+  private uploadPath = join(process.cwd(), 'assets', 'uploads');
+  async deleteImage(filename: string): Promise<{ message: string }> {
+    const filePath = join(this.uploadPath, filename);
+    try {
+      await unlink(filePath);
+      return { message: 'Image deleted successfully' };
+    } catch (error) {
+      throw new Error(`Failed to delete image: ${error.message}`);
+    }
   }
 }

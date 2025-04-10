@@ -7,18 +7,13 @@ import {
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
-import { MulterConfigService } from './multer.service';
-import {
-  FileFieldsInterceptor,
-  FileInterceptor,
-  FilesInterceptor,
-} from '@nestjs/platform-express';
-import { UploadService } from '../upload/upload.service';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { Public } from 'src/common/decorators/public.decorator';
+import { MulterService } from './multer.service';
 
 @Controller('multer')
 export class MulterController {
-  constructor(private readonly multerConfigService: MulterConfigService) {}
+  constructor(private readonly multerService: MulterService) {}
 
   @Post('single')
   @Public()
@@ -39,8 +34,8 @@ export class MulterController {
 
   // Xóa ảnh theo tên file
   @Delete(':filename')
+  @Public()
   async deleteFile(@Param('filename') filename: string) {
-    const filePath = `./uploads/${filename}`;
-    // return this.uploadService.deleteFile(filePath);
+    return this.multerService.deleteImage(filename);
   }
 }

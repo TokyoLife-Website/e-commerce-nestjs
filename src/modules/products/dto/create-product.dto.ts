@@ -1,7 +1,7 @@
 import {
   ArrayMinSize,
   IsArray,
-  IsDecimal,
+  IsDefined,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -38,9 +38,10 @@ export class CreateProductDto {
   @Min(0)
   discountValue?: number;
 
+  @IsDefined()
   @IsArray()
-  @IsOptional()
-  images?: string[];
+  @IsNotEmpty()
+  images: string[];
 
   @IsInt()
   @IsNotEmpty()
