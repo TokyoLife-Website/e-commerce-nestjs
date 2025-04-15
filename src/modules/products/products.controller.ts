@@ -14,7 +14,6 @@ import {
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { CreateProductAttributeDto } from './dto/create-product-attribute.dto';
 import { Role } from 'src/common/enum/role.enum';
 import { RolesGuard } from 'src/common/guards/role.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
@@ -56,6 +55,11 @@ export class ProductsController {
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.productsService.findOneById(id);
+  }
+
+  @Get('slug/:slug')
+  findOneBySlug(@Param('slug') slug: string) {
+    return this.productsService.findOneBySlug(slug);
   }
 
   @Patch(':id')

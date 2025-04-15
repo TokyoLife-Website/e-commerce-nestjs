@@ -135,6 +135,15 @@ export class ProductsService {
     return product;
   }
 
+  async findOneBySlug(slug: string): Promise<Product> {
+    const product = await this.productRepository.findOne({
+      where: { slug },
+      relations: ['skus'],
+    });
+    if (!product) throw new NotFoundException(`Product not found`);
+    return product;
+  }
+
   async update(
     id: number,
     updateProductDto: UpdateProductDto,
