@@ -25,6 +25,7 @@ import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { CartModule } from './modules/cart/cart.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { MulterModule } from './modules/multer/multer.module';
+import { ReviewModule } from './modules/review/review.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { MulterModule } from './modules/multer/multer.module';
     ProductsModule,
     WishlistModule,
     CartModule,
+    ReviewModule,
     UploadModule,
     MulterModule,
   ],

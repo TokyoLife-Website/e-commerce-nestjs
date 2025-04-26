@@ -7,10 +7,11 @@ import { ProductAttribute } from './entities/product-attribute.entity';
 import { ProductSku } from './entities/product-sku.entity';
 import { CategoriesModule } from '../categories/categories.module';
 import { MulterModule } from '../multer/multer.module';
+import { Review } from '../review/entities/review.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Product, ProductAttribute, ProductSku]),
+    TypeOrmModule.forFeature([Product, ProductAttribute, ProductSku, Review]),
     CategoriesModule,
     MulterModule,
   ],

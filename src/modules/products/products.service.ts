@@ -14,6 +14,7 @@ import { Pagination } from 'src/common/decorators/pagination-params.decorator';
 import { PaginationResource } from 'src/common/types/pagination-response.dto';
 import { ProductSkuDto } from './dto/create-product-sku.entity';
 import { MulterService } from '../multer/multer.service';
+import { Review } from '../review/entities/review.entity';
 
 @Injectable()
 export class ProductsService {
@@ -23,6 +24,8 @@ export class ProductsService {
     private readonly productRepository: Repository<Product>,
     @InjectRepository(ProductSku)
     private readonly productSkuRepository: Repository<ProductSku>,
+    @InjectRepository(Review)
+    private readonly reviewRepository: Repository<Review>,
     private readonly dataSource: DataSource,
     private readonly multerService: MulterService,
   ) {}
@@ -192,6 +195,26 @@ export class ProductsService {
       }
       return product;
     });
+  }
+
+  async updateAverageRating(productId: number) {
+    const product = await this.findOneById(productId);
+    const reviews = await this.reviewRepository.find({
+      where: { product: { id: productId }, isActive: true },
+    });
+
+    if (reviews.length > 0) {
+      const totalRating = reviews.reduce(
+        (sum, review) => sum + review.rating,
+        0,
+      );
+      product.rating = parseFloat((totalRating / reviews.length).toFixed(1));
+      product.reviewCount = reviews.length;
+    } else {
+      product.rating = 0;
+      product.reviewCount = 0;
+    }
+    await this.productRepository.save(product);
   }
 
   async covertDataUpdateProductSkus(

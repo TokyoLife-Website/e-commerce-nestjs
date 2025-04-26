@@ -18,6 +18,7 @@ import { Address } from 'src/modules/addresses/entities/address.entity';
 import { WishList } from 'src/modules/wishlist/entities/wishlist.entity';
 import { Cart } from 'src/modules/cart/entities/cart.entity';
 import { Image } from '../../upload/entities/image.entity';
+import { Review } from 'src/modules/review/entities/review.entity';
 
 @Entity()
 export class User {
@@ -62,6 +63,9 @@ export class User {
   @OneToOne(() => Cart, (carts) => carts.user, { cascade: true })
   @JoinColumn()
   carts: Cart[];
+
+  @OneToMany(() => Review, (review) => review.user)
+  reviews: Review[];
 
   @Column({ length: 6, unique: true, nullable: true })
   otp?: string;

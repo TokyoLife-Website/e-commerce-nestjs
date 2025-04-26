@@ -15,6 +15,7 @@ import {
 import { ProductSku } from './product-sku.entity';
 import slugify from 'slugify';
 import { DiscountType } from 'src/common/enum/discountType.enum';
+import { Review } from 'src/modules/review/entities/review.entity';
 
 @Entity()
 export class Product {
@@ -58,6 +59,9 @@ export class Product {
 
   @OneToMany(() => ProductSku, (sku) => sku.product)
   skus: ProductSku[];
+
+  @OneToMany(() => Review, (review) => review.product)
+  reviews: Review[];
 
   @Column('int', { default: 0 })
   stock: number;
