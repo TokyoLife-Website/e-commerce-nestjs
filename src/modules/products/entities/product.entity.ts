@@ -60,9 +60,6 @@ export class Product {
   @OneToMany(() => ProductSku, (sku) => sku.product)
   skus: ProductSku[];
 
-  @OneToMany(() => Review, (review) => review.product)
-  reviews: Review[];
-
   @Column('int', { default: 0 })
   stock: number;
 

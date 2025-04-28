@@ -1,23 +1,19 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { ReviewService } from './review.service';
 import { CreateReviewDto } from './dto/create-review.dto';
-import { UpdateReviewDto } from './dto/update-review.dto';
 import { User } from '../users/entities/user.entity';
 import { UserParams } from 'src/common/decorators/user.decorator';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enum/role.enum';
 import { RolesGuard } from 'src/common/guards/role.guard';
+import { Public } from 'src/common/decorators/public.decorator';
+import {
+  Pagination,
+  PaginationParams,
+} from 'src/common/decorators/pagination-params.decorator';
+import { FilterParams } from 'src/common/decorators/filter-params.decorator';
 
-@Controller('review')
+@Controller('reviews')
 export class ReviewController {
   constructor(private readonly reviewService: ReviewService) {}
 
@@ -25,27 +21,16 @@ export class ReviewController {
   @Roles(Role.Admin)
   @UseGuards(RolesGuard)
   create(@UserParams() user: User, @Body() createReviewDto: CreateReviewDto) {
-    console.log(user);
     return this.reviewService.create(user.id, createReviewDto);
   }
 
   @Get()
-  findAll() {
-    return this.reviewService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.reviewService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateReviewDto: UpdateReviewDto) {
-    return this.reviewService.update(+id, updateReviewDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.reviewService.remove(+id);
+  @Public()
+  findAll(
+    @FilterParams(['productId', 'rating'])
+    filters: { productId: string; rating?: string },
+    @PaginationParams() paginationParams: Pagination,
+  ) {
+    return this.reviewService.findAll(filters, paginationParams);
   }
 }

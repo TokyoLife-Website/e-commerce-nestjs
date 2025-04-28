@@ -5,10 +5,12 @@ import {
   CreateDateColumn,
   Entity,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Product } from './product.entity';
+import { Review } from 'src/modules/review/entities/review.entity';
 
 @Entity()
 export class ProductSku {
@@ -27,6 +29,9 @@ export class ProductSku {
 
   @Column({ type: 'varchar', unique: true, nullable: true })
   sku: string;
+
+  @OneToMany(() => Review, (review) => review.sku)
+  reviews: Review[];
 
   @Column({ type: 'varchar' })
   size: string;

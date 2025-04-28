@@ -199,17 +199,22 @@ export class ProductsService {
 
   async updateAverageRating(productId: number) {
     const product = await this.findOneById(productId);
-    const reviews = await this.reviewRepository.find({
-      where: { product: { id: productId }, isActive: true },
+    const skus = await this.productSkuRepository.find({
+      where: { productId },
+      relations: ['reviews'],
     });
+    const allReviews = skus.flatMap((sku) =>
+      sku.reviews.filter((r) => r.isActive),
+    );
+    console.log(allReviews);
 
-    if (reviews.length > 0) {
-      const totalRating = reviews.reduce(
+    if (allReviews.length > 0) {
+      const totalRating = allReviews.reduce(
         (sum, review) => sum + review.rating,
         0,
       );
-      product.rating = parseFloat((totalRating / reviews.length).toFixed(1));
-      product.reviewCount = reviews.length;
+      product.rating = parseFloat((totalRating / allReviews.length).toFixed(1));
+      product.reviewCount = allReviews.length;
     } else {
       product.rating = 0;
       product.reviewCount = 0;

@@ -1,10 +1,9 @@
-import { Product } from 'src/modules/products/entities/product.entity';
+import { ProductSku } from 'src/modules/products/entities/product-sku.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
-  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -12,7 +11,6 @@ import {
 } from 'typeorm';
 
 @Entity()
-@Index(['user', 'product'], { unique: true })
 export class Review {
   @PrimaryGeneratedColumn()
   id: number;
@@ -21,9 +19,15 @@ export class Review {
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @ManyToOne(() => Product, { nullable: false, onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'productId' })
-  product: Product;
+  @Column()
+  userId: number;
+
+  @ManyToOne(() => ProductSku, { nullable: false, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'skuId' })
+  sku: ProductSku;
+
+  @Column({ nullable: true })
+  skuId: number;
 
   @Column({ type: 'int', default: 5 })
   rating: number;
