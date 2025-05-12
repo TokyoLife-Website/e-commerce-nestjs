@@ -1,12 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import {  Repository } from 'typeorm';
 import { Cart } from './entities/cart.entity';
 import { UsersService } from '../users/users.service';
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
-import { ProductsService } from '../products/products.service';
 import { ProductSku } from '../products/entities/product-sku.entity';
-import e from 'express';
 import { CartItem } from './entities/cart-item.entity';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 
@@ -41,15 +39,32 @@ export class CartService {
   ): Promise<Cart> {
     const cart = await this.findOrCreateCart(userId);
     const { productSkuId, quantity } = createCartItemDto;
+    
+    // Check if product SKU exists
     const productSku = await this.productSkuRepository.findOneBy({
       id: productSkuId,
     });
-    if (!productSku)
-      throw new NotFoundException(`Product SKU ${productSku} not found`);
+    if (!productSku) {
+      throw new NotFoundException(`Product SKU #${productSkuId} not found`);
+    }
+
+    // Check if quantity is available
+    if (productSku.quantity < quantity) {
+      throw new NotFoundException(
+        `Not enough quantity available. Only ${productSku.quantity} items left in stock.`,
+      );
+    }
     let cartItem = cart.items.find((item) => item.sku.id === productSkuId);
     if (cartItem) {
-      cartItem.quantity += quantity;
-      cartItem.total += quantity * productSku.product.price;
+      // Check if total quantity (existing + new) doesn't exceed available stock
+      const totalQuantity = cartItem.quantity + quantity;
+      if (totalQuantity > productSku.quantity) {
+        throw new NotFoundException(
+          `Cannot add more items. Total quantity (${totalQuantity}) would exceed available stock (${productSku.quantity}).`,
+        );
+      }
+      cartItem.quantity = totalQuantity;
+      cartItem.total = totalQuantity * productSku.product.price;
     } else {
       cartItem = this.cartItemRepository.create({
         sku: productSku,

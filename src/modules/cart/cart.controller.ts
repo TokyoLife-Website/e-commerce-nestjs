@@ -13,9 +13,8 @@ import { User } from '../users/entities/user.entity';
 import { UserParams } from 'src/common/decorators/user.decorator';
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
-import { use } from 'passport';
 
-@Controller('cart')
+@Controller('carts')
 export class CartController {
   constructor(private readonly cartService: CartService) {}
   @Get()
@@ -28,6 +27,7 @@ export class CartController {
     @UserParams() user: User,
     @Body() createCartItemDto: CreateCartItemDto,
   ) {
+    console.log('createCartItemDto', createCartItemDto);
     return await this.cartService.addItemToCart(user.id, createCartItemDto);
   }
 
