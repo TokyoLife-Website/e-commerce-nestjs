@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import {  Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Cart } from './entities/cart.entity';
 import { UsersService } from '../users/users.service';
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
 import { ProductSku } from '../products/entities/product-sku.entity';
 import { CartItem } from './entities/cart-item.entity';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
+import { DiscountType } from 'src/common/enum/discountType.enum';
 
 @Injectable()
 export class CartService {
@@ -19,6 +20,19 @@ export class CartService {
     private productSkuRepository: Repository<ProductSku>,
     private usersService: UsersService,
   ) {}
+
+  private calculateDiscountedPrice(
+    basePrice: number,
+    discountType: DiscountType,
+    discountValue: number,
+  ): number {
+    if (discountType === DiscountType.PERCENTAGE) {
+      return basePrice - (basePrice * discountValue) / 100;
+    } else if (discountType === DiscountType.FIXED) {
+      return basePrice - discountValue;
+    }
+    return basePrice;
+  }
 
   async findOrCreateCart(userId: number) {
     let cart = await this.cartRepository.findOne({
@@ -39,8 +53,7 @@ export class CartService {
   ): Promise<Cart> {
     const cart = await this.findOrCreateCart(userId);
     const { productSkuId, quantity } = createCartItemDto;
-    
-    // Check if product SKU exists
+
     const productSku = await this.productSkuRepository.findOneBy({
       id: productSkuId,
     });
@@ -64,12 +77,22 @@ export class CartService {
         );
       }
       cartItem.quantity = totalQuantity;
-      cartItem.total = totalQuantity * productSku.product.price;
+      const discountedPrice = this.calculateDiscountedPrice(
+        productSku.product.price,
+        productSku.product.discountType,
+        productSku.product.discountValue,
+      );
+      cartItem.total = totalQuantity * discountedPrice;
     } else {
+      const discountedPrice = this.calculateDiscountedPrice(
+        productSku.product.price,
+        productSku.product.discountType,
+        productSku.product.discountValue,
+      );
       cartItem = this.cartItemRepository.create({
         sku: productSku,
         quantity,
-        total: quantity * productSku.product.price,
+        total: quantity * discountedPrice,
       });
       cart.items.push(cartItem);
     }
@@ -79,18 +102,33 @@ export class CartService {
   }
 
   async updateItem(userId: number, updateCartItemDto: UpdateCartItemDto) {
-    const { productSkuId, quantity, cartItemId } = updateCartItemDto;
+    const { quantity, cartItemId } = updateCartItemDto;
     const cart = await this.findOrCreateCart(userId);
     const cartItem = cart.items.find((item) => item.id === cartItemId);
     if (!cartItem) throw new NotFoundException('Cart item not found');
     const productSku = await this.productSkuRepository.findOneBy({
-      id: productSkuId,
+      id: cartItem.sku.id,
     });
     if (!productSku)
       throw new NotFoundException(`Product SKU ${productSku} not found`);
+
+    // Check if quantity is available
+    if (productSku.quantity < quantity) {
+      throw new NotFoundException(
+        `Not enough quantity available. Only ${productSku.quantity} items left in stock.`,
+      );
+    }
+
     cartItem.quantity = quantity;
     cartItem.sku = productSku;
+    const discountedPrice = this.calculateDiscountedPrice(
+      productSku.product.price,
+      productSku.product.discountType,
+      productSku.product.discountValue,
+    );
+    cartItem.total = quantity * discountedPrice;
     await this.cartItemRepository.save(cartItem);
+    cart.total = cart.items.reduce((acc, item) => acc + item.total, 0);
     return this.cartRepository.save(cart);
   }
 
