@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty } from 'class-validator';
+import { IsInt, IsNotEmpty, Min } from 'class-validator';
 
 export class CreateCartItemDto {
   @IsInt()
@@ -6,6 +6,7 @@ export class CreateCartItemDto {
   productSkuId: number;
 
   @IsInt()
+  @Min(1, { message: 'Quantity must be at least 1' })
   @IsNotEmpty()
   quantity: number;
 }

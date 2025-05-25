@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Cart } from './entities/cart.entity';
 import { UsersService } from '../users/users.service';
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
@@ -19,6 +19,7 @@ export class CartService {
     @InjectRepository(ProductSku)
     private productSkuRepository: Repository<ProductSku>,
     private usersService: UsersService,
+    private readonly dataSource: DataSource,
   ) {}
 
   private calculateDiscountedPrice(
@@ -34,17 +35,43 @@ export class CartService {
     return basePrice;
   }
 
-  async findOrCreateCart(userId: number) {
-    let cart = await this.cartRepository.findOne({
-      where: { user: { id: userId } },
-      relations: ['items', 'items.sku'],
-    });
-    if (!cart) {
-      const user = await this.usersService.findOne(userId);
-      cart = this.cartRepository.create({ user });
-      cart = await this.cartRepository.save(cart);
+  async findOrCreateCart(userId: number): Promise<Cart> {
+    try {
+      // First try to find existing cart with minimal relations
+      let cart = await this.cartRepository.findOne({
+        where: { user: { id: userId } },
+        relations: ['items'],
+      });
+
+      if (!cart) {
+        // If cart doesn't exist, create new one
+        const user = await this.usersService.findOne(userId);
+        if (!user) {
+          throw new NotFoundException(`User with id ${userId} not found`);
+        }
+
+        cart = this.cartRepository.create({ user });
+        cart = await this.cartRepository.save(cart);
+      } else {
+        // If cart exists, load full relations
+        cart = await this.cartRepository.findOne({
+          where: { id: cart.id },
+          relations: [
+            'items',
+            'items.sku',
+            'items.sku.product',
+            'items.sku.product.skus',
+          ],
+        });
+      }
+
+      return cart;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new Error(`Failed to find or create cart: ${error.message}`);
     }
-    return cart;
   }
 
   async addItemToCart(
@@ -102,34 +129,63 @@ export class CartService {
   }
 
   async updateItem(userId: number, updateCartItemDto: UpdateCartItemDto) {
-    const { quantity, cartItemId } = updateCartItemDto;
+    const { quantity, cartItemId, productSkuId } = updateCartItemDto;
     const cart = await this.findOrCreateCart(userId);
     const cartItem = cart.items.find((item) => item.id === cartItemId);
     if (!cartItem) throw new NotFoundException('Cart item not found');
-    const productSku = await this.productSkuRepository.findOneBy({
-      id: cartItem.sku.id,
-    });
-    if (!productSku)
-      throw new NotFoundException(`Product SKU ${productSku} not found`);
 
+    let sku = cartItem.sku;
+
+    // If changing SKU, get the new SKU
+    if (productSkuId && productSkuId !== sku.id) {
+      sku = await this.productSkuRepository.findOne({
+        where: { id: productSkuId },
+        relations: ['product', 'product.skus'],
+      });
+      if (!sku) {
+        throw new NotFoundException(`Product SKU #${productSkuId} not found`);
+      }
+    }
+
+    const updatedQuantity = quantity ?? cartItem.quantity;
     // Check if quantity is available
-    if (productSku.quantity < quantity) {
+    if (sku.quantity < updatedQuantity) {
       throw new NotFoundException(
-        `Not enough quantity available. Only ${productSku.quantity} items left in stock.`,
+        `Not enough quantity available. Only ${sku.quantity} items left in stock.`,
       );
     }
 
-    cartItem.quantity = quantity;
-    cartItem.sku = productSku;
-    const discountedPrice = this.calculateDiscountedPrice(
-      productSku.product.price,
-      productSku.product.discountType,
-      productSku.product.discountValue,
-    );
-    cartItem.total = quantity * discountedPrice;
-    await this.cartItemRepository.save(cartItem);
-    cart.total = cart.items.reduce((acc, item) => acc + item.total, 0);
-    return this.cartRepository.save(cart);
+    // Start transaction
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Update cart item
+      cartItem.quantity = updatedQuantity;
+      cartItem.sku = sku;
+      const discountedPrice = this.calculateDiscountedPrice(
+        sku.product.price,
+        sku.product.discountType,
+        sku.product.discountValue,
+      );
+      cartItem.total = updatedQuantity * discountedPrice;
+      await queryRunner.manager.save(cartItem);
+
+      // Update cart total
+      cart.total = cart.items.reduce((acc, item) => acc + item.total, 0);
+      await queryRunner.manager.save(cart);
+
+      await queryRunner.commitTransaction();
+      return cart;
+    } catch (error) {
+      // Rollback transaction on error
+      await queryRunner.rollbackTransaction();
+      throw new Error(`Failed to update cart item: ${error.message}`);
+    } finally {
+      // Release query runner
+      await queryRunner.release();
+    }
   }
 
   async removeItemFromCart(userId: number, cartItemId: number) {
