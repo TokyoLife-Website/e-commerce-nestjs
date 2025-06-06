@@ -13,5 +13,5 @@ export class District {
   province: Province;
 
   @OneToMany(() => Ward, (ward) => ward.district)
-  wards: Ward;
+  wards: Ward[];
 }

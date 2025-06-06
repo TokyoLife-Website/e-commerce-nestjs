@@ -26,6 +26,7 @@ import { CartModule } from './modules/cart/cart.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { MulterModule } from './modules/multer/multer.module';
 import { ReviewModule } from './modules/review/review.module';
+import { OrdersModule } from './modules/orders/orders.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { ReviewModule } from './modules/review/review.module';
     ReviewModule,
     UploadModule,
     MulterModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,6 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Cart } from './entities/cart.entity';
 import { UsersService } from '../users/users.service';
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
@@ -8,6 +14,7 @@ import { ProductSku } from '../products/entities/product-sku.entity';
 import { CartItem } from './entities/cart-item.entity';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { DiscountType } from 'src/common/enum/discountType.enum';
+import { calculateDiscountedPrice } from 'src/common/utils/calculateDiscountedPrice';
 
 @Injectable()
 export class CartService {
@@ -22,17 +29,23 @@ export class CartService {
     private readonly dataSource: DataSource,
   ) {}
 
-  private calculateDiscountedPrice(
-    basePrice: number,
-    discountType: DiscountType,
-    discountValue: number,
-  ): number {
-    if (discountType === DiscountType.PERCENTAGE) {
-      return basePrice - (basePrice * discountValue) / 100;
-    } else if (discountType === DiscountType.FIXED) {
-      return basePrice - discountValue;
+  private async runInTransaction(
+    task: (manager: EntityManager) => Promise<void>,
+  ) {
+    const qr = this.dataSource.createQueryRunner();
+    await qr.connect();
+    await qr.startTransaction();
+    try {
+      await task(qr.manager);
+      await qr.commitTransaction();
+    } catch (err) {
+      await qr.rollbackTransaction();
+      if (err instanceof HttpException) throw err;
+      console.error(err);
+      throw new InternalServerErrorException('Something went wrong');
+    } finally {
+      await qr.release();
     }
-    return basePrice;
   }
 
   async findOrCreateCart(userId: number): Promise<Cart> {
@@ -104,14 +117,14 @@ export class CartService {
         );
       }
       cartItem.quantity = totalQuantity;
-      const discountedPrice = this.calculateDiscountedPrice(
+      const discountedPrice = calculateDiscountedPrice(
         productSku.product.price,
         productSku.product.discountType,
         productSku.product.discountValue,
       );
       cartItem.total = totalQuantity * discountedPrice;
     } else {
-      const discountedPrice = this.calculateDiscountedPrice(
+      const discountedPrice = calculateDiscountedPrice(
         productSku.product.price,
         productSku.product.discountType,
         productSku.product.discountValue,
@@ -128,64 +141,88 @@ export class CartService {
     return await this.cartRepository.save(cart);
   }
 
-  async updateItem(userId: number, updateCartItemDto: UpdateCartItemDto) {
-    const { quantity, cartItemId, productSkuId } = updateCartItemDto;
+  async updateItem(userId: number, dto: UpdateCartItemDto) {
+    const { quantity, cartItemId, productSkuId } = dto;
     const cart = await this.findOrCreateCart(userId);
     const cartItem = cart.items.find((item) => item.id === cartItemId);
     if (!cartItem) throw new NotFoundException('Cart item not found');
 
-    let sku = cartItem.sku;
-
-    // If changing SKU, get the new SKU
-    if (productSkuId && productSkuId !== sku.id) {
-      sku = await this.productSkuRepository.findOne({
-        where: { id: productSkuId },
-        relations: ['product', 'product.skus'],
-      });
-      if (!sku) {
-        throw new NotFoundException(`Product SKU #${productSkuId} not found`);
-      }
-    }
-
+    const isSkuChanged = productSkuId && productSkuId !== cartItem.sku.id;
     const updatedQuantity = quantity ?? cartItem.quantity;
-    // Check if quantity is available
-    if (sku.quantity < updatedQuantity) {
-      throw new NotFoundException(
-        `Not enough quantity available. Only ${sku.quantity} items left in stock.`,
+
+    await this.runInTransaction(async (manager) => {
+      if (isSkuChanged) {
+        const newSku = await this.productSkuRepository.findOne({
+          where: { id: productSkuId },
+          relations: ['product', 'product.skus'],
+        });
+        if (!newSku) {
+          throw new NotFoundException(`SKU #${productSkuId} not found`);
+        }
+        const existingItem = cart.items.find(
+          (item) => item.sku.id === productSkuId && item.id !== cartItemId,
+        );
+        if (existingItem) {
+          const totalQty = updatedQuantity + existingItem.quantity;
+          if (newSku.quantity < totalQty) {
+            throw new BadRequestException(`Only ${newSku.quantity} in stock`);
+          }
+          existingItem.quantity = totalQty;
+          const discountedPrice = calculateDiscountedPrice(
+            newSku.product.price,
+            newSku.product.discountType,
+            newSku.product.discountValue,
+          );
+          existingItem.total = totalQty * discountedPrice;
+          await manager.save(existingItem);
+
+          // Load cart item from database before removing
+          const cartItemToRemove = await manager.findOne(CartItem, {
+            where: { id: cartItemId },
+          });
+          if (cartItemToRemove) {
+            await manager.remove(cartItemToRemove);
+            // Update cart items array
+            cart.items = cart.items.filter((item) => item.id !== cartItemId);
+          }
+        } else {
+          if (newSku.quantity < updatedQuantity) {
+            throw new BadRequestException(`Only ${newSku.quantity} in stock`);
+          }
+          cartItem.sku = newSku;
+          cartItem.quantity = updatedQuantity;
+          const discountedPrice = calculateDiscountedPrice(
+            newSku.product.price,
+            newSku.product.discountType,
+            newSku.product.discountValue,
+          );
+          cartItem.total = updatedQuantity * discountedPrice;
+          await manager.save(cartItem);
+        }
+      } else {
+        if (cartItem.sku.quantity < updatedQuantity) {
+          throw new BadRequestException(
+            `Only ${cartItem.sku.quantity} in stock`,
+          );
+        }
+        cartItem.quantity = updatedQuantity;
+        const discountedPrice = calculateDiscountedPrice(
+          cartItem.sku.product.price,
+          cartItem.sku.product.discountType,
+          cartItem.sku.product.discountValue,
+        );
+        cartItem.total = updatedQuantity * discountedPrice;
+        await manager.save(cartItem);
+      }
+      cart.total = cart.items.reduce(
+        (acc, item) =>
+          acc + (item.id === cartItemId ? cartItem.total : item.total),
+        0,
       );
-    }
+      await manager.save(cart);
+    });
 
-    // Start transaction
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      // Update cart item
-      cartItem.quantity = updatedQuantity;
-      cartItem.sku = sku;
-      const discountedPrice = this.calculateDiscountedPrice(
-        sku.product.price,
-        sku.product.discountType,
-        sku.product.discountValue,
-      );
-      cartItem.total = updatedQuantity * discountedPrice;
-      await queryRunner.manager.save(cartItem);
-
-      // Update cart total
-      cart.total = cart.items.reduce((acc, item) => acc + item.total, 0);
-      await queryRunner.manager.save(cart);
-
-      await queryRunner.commitTransaction();
-      return cart;
-    } catch (error) {
-      // Rollback transaction on error
-      await queryRunner.rollbackTransaction();
-      throw new Error(`Failed to update cart item: ${error.message}`);
-    } finally {
-      // Release query runner
-      await queryRunner.release();
-    }
+    return cart;
   }
 
   async removeItemFromCart(userId: number, cartItemId: number) {
