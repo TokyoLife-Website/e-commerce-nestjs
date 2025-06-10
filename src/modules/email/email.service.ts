@@ -3,6 +3,9 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as Mailgen from 'mailgen';
 import { User } from '../users/entities/user.entity';
+import { Order } from '../orders/entities/order.entity';
+import { formatCurrency } from 'src/common/utils/formatCurrency';
+import { generateOrderEmailTemplate } from './templates/order-confirmation.template';
 
 @Injectable()
 export class EmailService {
@@ -51,6 +54,16 @@ export class EmailService {
       to: user.email,
       from: '"Support Team" <support@vaccineportal.com>',
       subject: 'Reset password',
+      html,
+    });
+  }
+
+  async sendOrderConfirmationEmail(user: User, order: Order): Promise<void> {
+    const html = generateOrderEmailTemplate(order);
+    await this.mailerService.sendMail({
+      to: user.email,
+      from: '"Support Team" <support@vaccineportal.com>',
+      subject: `Order Confirmation - Order #${order.code}`,
       html,
     });
   }

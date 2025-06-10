@@ -17,6 +17,10 @@ import { ProductSku } from '../products/entities/product-sku.entity';
 import { UsersService } from '../users/users.service';
 import { calculateDiscountedPrice } from 'src/common/utils/calculateDiscountedPrice';
 import { CartService } from '../cart/cart.service';
+import { EmailService } from '../email/email.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { queueName } from 'src/common/constants/queueName';
 
 @Injectable()
 export class OrdersService {
@@ -31,6 +35,8 @@ export class OrdersService {
     private readonly usersService: UsersService,
     private readonly addressesService: AddressesService,
     private readonly cartService: CartService,
+    private readonly emailService: EmailService,
+    @InjectQueue(queueName.MAIL) private readonly mailQueue: Queue,
   ) {}
 
   private generateOrderNumber(): string {
@@ -137,6 +143,10 @@ export class OrdersService {
       await queryRunner.manager.save(savedOrder);
       await this.cartService.clearCart(user.id);
       await queryRunner.commitTransaction();
+      await this.mailQueue.add('sendOrderConfirmationEmail', {
+        user,
+        order: savedOrder,
+      });
       return savedOrder;
     } catch (error) {
       console.error('Failed to create order', error);

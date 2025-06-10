@@ -8,6 +8,8 @@ import { User } from '../users/entities/user.entity';
 import { AddressesModule } from '../addresses/addresses.module';
 import { UsersModule } from '../users/users.module';
 import { CartModule } from '../cart/cart.module';
+import { EmailModule } from '../email/email.module';
+import { BullConfigModule } from '../bullMQ/bullMQ.module';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { CartModule } from '../cart/cart.module';
     UsersModule,
     AddressesModule,
     CartModule,
+    EmailModule,
+    BullConfigModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService],
