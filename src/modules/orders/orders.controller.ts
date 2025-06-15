@@ -13,6 +13,11 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 import { User } from '../users/entities/user.entity';
 import { UserParams } from 'src/common/decorators/user.decorator';
 import { OrderStatus } from 'src/common/enum/orderStatus.enum';
+import { FilterParams } from 'src/common/decorators/filter-params.decorator';
+import {
+  Pagination,
+  PaginationParams,
+} from 'src/common/decorators/pagination-params.decorator';
 
 @Controller('orders')
 export class OrdersController {
@@ -24,8 +29,13 @@ export class OrdersController {
   }
 
   @Get()
-  findAll() {
-    return this.ordersService.findAll();
+  findAll(
+    @FilterParams(['status'])
+    filters: { status: OrderStatus },
+    @PaginationParams() paginationParams: Pagination,
+    @UserParams() user: User,
+  ) {
+    return this.ordersService.findAll(user.id, filters, paginationParams);
   }
 
   @Get(':code')

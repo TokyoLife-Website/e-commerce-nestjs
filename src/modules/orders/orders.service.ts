@@ -21,6 +21,8 @@ import { EmailService } from '../email/email.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { queueName } from 'src/common/constants/queueName';
+import { Pagination } from 'src/common/decorators/pagination-params.decorator';
+import { PaginationResource } from 'src/common/types/pagination-response.dto';
 
 @Injectable()
 export class OrdersService {
@@ -157,10 +159,33 @@ export class OrdersService {
     }
   }
 
-  async findAll(): Promise<Order[]> {
-    return this.orderRepository.find({
-      relations: ['user', 'address', 'items', 'items.sku', 'items.sku.product'],
+  async findAll(
+    userId: number,
+    filters: { status: OrderStatus },
+    { limit, offset, page, size }: Pagination,
+  ): Promise<PaginationResource<Partial<Order>>> {
+    const user = await this.usersService.findOne(userId);
+    const where: any = {
+      userId: user.id,
+    };
+    if (filters.status) {
+      where.status = filters.status;
+    }
+    const [orders, total] = await this.orderRepository.findAndCount({
+      order: {
+        createdAt: 'DESC',
+      },
+      where,
+      take: limit,
+      skip: offset,
     });
+    return {
+      items: orders,
+      page,
+      size,
+      totalItems: total,
+      totalPages: Math.ceil(total / size),
+    };
   }
 
   async findOne(code: string): Promise<Order> {

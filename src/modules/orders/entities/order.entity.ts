@@ -21,6 +21,9 @@ export class Order {
   @Column({ unique: true })
   code: string;
 
+  @Column()
+  userId: number;
+
   @ManyToOne(() => User)
   user: User;
 
