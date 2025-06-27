@@ -13,6 +13,8 @@ import { User } from '../users/entities/user.entity';
 import { UserParams } from 'src/common/decorators/user.decorator';
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
+import { ApplyCouponDto } from './dto/apply-coupon.dto';
+import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
 
 @Controller('carts')
 export class CartController {
@@ -27,8 +29,16 @@ export class CartController {
     @UserParams() user: User,
     @Body() createCartItemDto: CreateCartItemDto,
   ) {
-    console.log('createCartItemDto', createCartItemDto);
     return await this.cartService.addItemToCart(user.id, createCartItemDto);
+  }
+
+  @Post('apply-coupon')
+  @ResponseMessage('Coupon applied successfully')
+  async applyCouponToCart(
+    @UserParams() user: User,
+    @Body() dto: ApplyCouponDto,
+  ) {
+    return this.cartService.applyCouponToCart(user.id, dto);
   }
 
   @Patch()

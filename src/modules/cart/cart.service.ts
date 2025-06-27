@@ -15,6 +15,11 @@ import { CartItem } from './entities/cart-item.entity';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { DiscountType } from 'src/common/enum/discountType.enum';
 import { calculateDiscountedPrice } from 'src/common/utils/calculateDiscountedPrice';
+import { ApplyCouponDto } from './dto/apply-coupon.dto';
+import { Coupon } from '../coupon/entities/coupon.entity';
+import { CouponStatus } from 'src/common/enum/couponStatus.enum';
+import * as dayjs from 'dayjs';
+import { CouponType } from 'src/common/enum/couponType.enum';
 
 @Injectable()
 export class CartService {
@@ -25,6 +30,8 @@ export class CartService {
     private cartItemRepository: Repository<CartItem>,
     @InjectRepository(ProductSku)
     private productSkuRepository: Repository<ProductSku>,
+    @InjectRepository(Coupon)
+    private couponRepository: Repository<Coupon>,
     private usersService: UsersService,
     private readonly dataSource: DataSource,
   ) {}
@@ -139,6 +146,56 @@ export class CartService {
     cart.total = cart.items.reduce((acc, item) => acc + item.total, 0);
     await this.cartItemRepository.save(cartItem);
     return await this.cartRepository.save(cart);
+  }
+
+  async applyCouponToCart(userId: number, dto: ApplyCouponDto) {
+    const cart = await this.findOrCreateCart(userId);
+
+    const coupon = await this.couponRepository.findOne({
+      where: { code: dto.code },
+    });
+
+    const {
+      maxDiscountAmount,
+      minOrderAmout,
+      startDate,
+      endDate,
+      usageLimit,
+      usedCount,
+      value,
+      status,
+      type,
+    } = coupon;
+
+    if (!coupon || status !== CouponStatus.ACTIVE)
+      throw new BadRequestException('Coupon is invalid or inactive');
+
+    const now = dayjs();
+    if (dayjs(startDate).isAfter(now) || dayjs(endDate).isBefore(now))
+      throw new BadRequestException('Coupon is expired or not yet active');
+
+    if (usageLimit > 0 && usedCount >= usageLimit)
+      throw new BadRequestException('Coupon has been fully used');
+
+    if (minOrderAmout && cart.total < minOrderAmout)
+      throw new BadRequestException(
+        'Order does not meet minimum amount for coupon',
+      );
+
+    let discount = 0;
+    if (type === CouponType.PERCENTAGE) {
+      discount = (cart.total * value) / 100;
+      if (maxDiscountAmount) discount = Math.min(maxDiscountAmount, discount);
+    } else if (type === CouponType.FIXED) {
+      discount = value;
+    }
+
+    const finalAmount = Math.max(0, cart.total - discount);
+
+    cart.coupon = coupon;
+    cart.discountAmount = discount;
+    cart.finalAmount = finalAmount;
+    await this.cartRepository.save(cart);
   }
 
   async updateItem(userId: number, dto: UpdateCartItemDto) {

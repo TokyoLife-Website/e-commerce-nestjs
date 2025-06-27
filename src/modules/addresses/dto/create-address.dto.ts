@@ -11,7 +11,7 @@ import { AddressType } from 'src/common/enum/addressType.enum';
 export class CreateAddressDto {
   @IsEnum(AddressType)
   @IsOptional()
-  type: AddressType;
+  type?: AddressType;
 
   @IsBoolean()
   @IsOptional()

@@ -27,6 +27,7 @@ import { UploadModule } from './modules/upload/upload.module';
 import { MulterModule } from './modules/multer/multer.module';
 import { ReviewModule } from './modules/review/review.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { CouponModule } from './modules/coupon/coupon.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { OrdersModule } from './modules/orders/orders.module';
     UploadModule,
     MulterModule,
     OrdersModule,
+    CouponModule,
   ],
   controllers: [AppController],
   providers: [
