@@ -14,7 +14,10 @@ import { ProductSku } from '../products/entities/product-sku.entity';
 import { CartItem } from './entities/cart-item.entity';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { DiscountType } from 'src/common/enum/discountType.enum';
-import { calculateDiscountedPrice } from 'src/common/utils/calculateDiscountedPrice';
+import {
+  calculateDiscount,
+  calculateDiscountedPrice,
+} from 'src/common/utils/calculateDiscountedPrice';
 import { ApplyCouponDto } from './dto/apply-coupon.dto';
 import { Coupon } from '../coupon/entities/coupon.entity';
 import { CouponStatus } from 'src/common/enum/couponStatus.enum';
@@ -81,6 +84,7 @@ export class CartService {
             'items.sku',
             'items.sku.product',
             'items.sku.product.skus',
+            'coupon',
           ],
         });
       }
@@ -155,17 +159,8 @@ export class CartService {
       where: { code: dto.code },
     });
 
-    const {
-      maxDiscountAmount,
-      minOrderAmout,
-      startDate,
-      endDate,
-      usageLimit,
-      usedCount,
-      value,
-      status,
-      type,
-    } = coupon;
+    const { minOrderAmout, startDate, endDate, usageLimit, usedCount, status } =
+      coupon;
 
     if (!coupon || status !== CouponStatus.ACTIVE)
       throw new BadRequestException('Coupon is invalid or inactive');
@@ -182,13 +177,7 @@ export class CartService {
         'Order does not meet minimum amount for coupon',
       );
 
-    let discount = 0;
-    if (type === CouponType.PERCENTAGE) {
-      discount = (cart.total * value) / 100;
-      if (maxDiscountAmount) discount = Math.min(maxDiscountAmount, discount);
-    } else if (type === CouponType.FIXED) {
-      discount = value;
-    }
+    const discount = calculateDiscount(coupon, cart.total);
 
     const finalAmount = Math.max(0, cart.total - discount);
 
@@ -196,6 +185,21 @@ export class CartService {
     cart.discountAmount = discount;
     cart.finalAmount = finalAmount;
     await this.cartRepository.save(cart);
+  }
+
+  async removeCouponFromCart(userId: number): Promise<Cart> {
+    const cart = await this.findOrCreateCart(userId);
+    cart.coupon = null;
+    cart.discountAmount = 0;
+    const total = cart.items.reduce((sum, item) => {
+      return sum + item.total;
+    }, 0);
+    cart.total = total;
+    cart.finalAmount = total;
+
+    await this.cartRepository.save(cart);
+
+    return cart;
   }
 
   async updateItem(userId: number, dto: UpdateCartItemDto) {
@@ -271,11 +275,28 @@ export class CartService {
         cartItem.total = updatedQuantity * discountedPrice;
         await manager.save(cartItem);
       }
-      cart.total = cart.items.reduce(
+
+      const total = cart.items.reduce(
         (acc, item) =>
           acc + (item.id === cartItemId ? cartItem.total : item.total),
         0,
       );
+
+      if (cart.coupon) {
+        const { minOrderAmout } = cart.coupon;
+        if (minOrderAmout && total < minOrderAmout) {
+          console.log('running');
+          cart.coupon = null;
+          cart.discountAmount = 0;
+          cart.finalAmount = total;
+        } else {
+          const discount = calculateDiscount(cart.coupon, total);
+          cart.discountAmount = discount;
+          cart.finalAmount = Math.max(0, total - discount);
+        }
+      } else cart.finalAmount = total;
+
+      cart.total = total;
       await manager.save(cart);
     });
 

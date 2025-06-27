@@ -41,6 +41,11 @@ export class CartController {
     return this.cartService.applyCouponToCart(user.id, dto);
   }
 
+  @Delete('remove-coupon')
+  async removeCouponFromCart(@UserParams() user: User) {
+    return this.cartService.removeCouponFromCart(user.id);
+  }
+
   @Patch()
   async updateItem(
     @UserParams() user: User,
