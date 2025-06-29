@@ -44,8 +44,11 @@ export class OrdersController {
   }
 
   @Patch(':code')
-  update(@Param('code') code: string, @Body() newStatus: OrderStatus) {
-    return this.ordersService.updateStatus(code, newStatus);
+  update(
+    @Param('code') code: string,
+    @Body() body: { newStatus: OrderStatus },
+  ) {
+    return this.ordersService.updateStatus(code, body.newStatus);
   }
 
   @Delete(':code')

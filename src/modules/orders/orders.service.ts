@@ -4,25 +4,27 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
 import { Order } from './entities/order.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { OrderStatus } from 'src/common/enum/orderStatus.enum';
-import { ProductsService } from '../products/products.service';
 import { AddressesService } from '../addresses/addresses.service';
 import { OrderItem } from './entities/order-item.entity';
 import { User } from '../users/entities/user.entity';
 import { ProductSku } from '../products/entities/product-sku.entity';
 import { UsersService } from '../users/users.service';
-import { calculateDiscountedPrice } from 'src/common/utils/calculateDiscountedPrice';
+import {
+  calculateDiscount,
+  calculateDiscountedPrice,
+} from 'src/common/utils/calculateDiscountedPrice';
 import { CartService } from '../cart/cart.service';
-import { EmailService } from '../email/email.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { queueName } from 'src/common/constants/queueName';
 import { Pagination } from 'src/common/decorators/pagination-params.decorator';
 import { PaginationResource } from 'src/common/types/pagination-response.dto';
+import { Coupon } from '../coupon/entities/coupon.entity';
+import { ShippingService } from '../shipping/shipping.service';
 
 @Injectable()
 export class OrdersService {
@@ -33,11 +35,13 @@ export class OrdersService {
     private orderItemRepository: Repository<OrderItem>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Coupon)
+    private couponRepository: Repository<Coupon>,
     private readonly dataSource: DataSource,
     private readonly usersService: UsersService,
     private readonly addressesService: AddressesService,
     private readonly cartService: CartService,
-    private readonly emailService: EmailService,
+    private readonly shippingService: ShippingService,
     @InjectQueue(queueName.MAIL) private readonly mailQueue: Queue,
   ) {}
 
@@ -54,7 +58,7 @@ export class OrdersService {
     newStatus: OrderStatus,
   ): boolean {
     const validTransitions: Record<OrderStatus, OrderStatus[]> = {
-      [OrderStatus.PENDING]: [OrderStatus.DELIVERING, OrderStatus.CANCELLED],
+      [OrderStatus.PENDING]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
       [OrderStatus.PROCESSING]: [OrderStatus.DELIVERING, OrderStatus.CANCELLED],
       [OrderStatus.DELIVERING]: [OrderStatus.DELIVERED, OrderStatus.RETURNED],
       [OrderStatus.DELIVERED]: [OrderStatus.RETURNED],
@@ -97,6 +101,7 @@ export class OrdersService {
       const savedOrder = await queryRunner.manager.save(order);
 
       // Process order items
+      let quantity = 0;
       let orderTotal = 0;
       const orderItems: OrderItem[] = [];
 
@@ -132,6 +137,7 @@ export class OrdersService {
         orderItems.push(orderItem);
 
         // Update SKU quantity
+        quantity += item.quantity;
         sku.quantity -= item.quantity;
         sku.product.soldCount += item.quantity;
         sku.product.stock -= item.quantity;
@@ -142,8 +148,45 @@ export class OrdersService {
       // Save order items
       await queryRunner.manager.save(orderItems);
 
+      const isFreeShip = orderTotal >= 300000;
+      let coupon = null;
+      let discount = 0;
+      let finalAmount = 0;
+      let shippingFee = 0;
+      if (!isFreeShip) {
+        const shippingResult = await this.shippingService.calculateShippingFee({
+          pick_province: 'Hà Nội',
+          pick_district: 'Cầu Giấy',
+          province: address.province.name,
+          district: address.district.name,
+          ward: address.ward.name,
+          address: address.detail,
+          weight: quantity * 300,
+        });
+        shippingFee = shippingResult.shippingFee;
+      }
+
+      if (cart.coupon) {
+        coupon = await this.couponRepository.findOneByOrFail({
+          code: cart.coupon.code,
+        });
+        const { minOrderAmout } = coupon;
+        if (!minOrderAmout || orderTotal >= minOrderAmout) {
+          discount = calculateDiscount(coupon, orderTotal);
+        } else {
+          coupon = null;
+          discount = 0;
+        }
+      }
+
+      finalAmount = Math.max(0, orderTotal + shippingFee - discount);
+
       // Update order total
+      savedOrder.coupon = coupon;
+      savedOrder.discount = discount;
       savedOrder.total = orderTotal;
+      savedOrder.shippingFee = shippingFee;
+      savedOrder.finalAmount = finalAmount;
       savedOrder.items = orderItems;
       await queryRunner.manager.save(savedOrder);
       await this.cartService.clearCart(user.id);
@@ -215,15 +258,43 @@ export class OrdersService {
   }
 
   async updateStatus(code: string, newStatus: OrderStatus): Promise<Order> {
-    const order = await this.findOne(code);
+    const order = await this.orderRepository.findOne({
+      where: { code },
+      relations: ['coupon'],
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with id ${code} not found`);
+    }
 
     if (!this.isValidStatusTransition(order.status, newStatus)) {
       throw new BadRequestException(
-        `Invalid status transition from ${order.status} to ${newStatus}`,
+        `Invalid status transition from ${order.status} to ${JSON.stringify(newStatus)}`,
       );
     }
 
-    order.status = newStatus;
-    return this.orderRepository.save(order);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      if (
+        order.status !== OrderStatus.DELIVERED &&
+        newStatus === OrderStatus.DELIVERED &&
+        order.coupon
+      ) {
+        console.log('running');
+        order.coupon.usedCount += 1;
+        await queryRunner.manager.save(order.coupon);
+      }
+      order.status = newStatus;
+      const updatedOrder = await queryRunner.manager.save(order);
+      await queryRunner.commitTransaction();
+      return updatedOrder;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

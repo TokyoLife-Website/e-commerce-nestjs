@@ -12,6 +12,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { OrderItem } from './order-item.entity';
+import { Coupon } from 'src/modules/coupon/entities/coupon.entity';
 
 @Entity()
 export class Order {
@@ -42,8 +43,14 @@ export class Order {
   @Column({ default: 0 })
   shippingFee: number;
 
-  @Column({ type: 'double' })
+  @Column({ type: 'double', default: 0 })
   total: number;
+
+  @Column({ type: 'double', default: 0 })
+  finalAmount: number;
+
+  @ManyToOne(() => Coupon, { nullable: true })
+  coupon?: Coupon;
 
   @Column({ nullable: true })
   note: string;

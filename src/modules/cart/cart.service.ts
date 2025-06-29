@@ -161,11 +161,10 @@ export class CartService {
       where: { code: dto.code },
     });
 
-    const { minOrderAmout, startDate, endDate, usageLimit, usedCount, status } =
-      coupon;
-
-    if (!coupon || status !== CouponStatus.ACTIVE)
+    if (!coupon || coupon.status !== CouponStatus.ACTIVE)
       throw new BadRequestException('Coupon is invalid or inactive');
+
+    const { minOrderAmout, startDate, endDate, usageLimit, usedCount } = coupon;
 
     const now = dayjs();
     if (dayjs(startDate).isAfter(now) || dayjs(endDate).isBefore(now))
@@ -287,7 +286,6 @@ export class CartService {
       if (cart.coupon) {
         const { minOrderAmout } = cart.coupon;
         if (minOrderAmout && total < minOrderAmout) {
-          console.log('running');
           cart.coupon = null;
           cart.discountAmount = 0;
           cart.finalAmount = total;
