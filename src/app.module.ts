@@ -28,6 +28,7 @@ import { MulterModule } from './modules/multer/multer.module';
 import { ReviewModule } from './modules/review/review.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { CouponModule } from './modules/coupon/coupon.module';
+import { ShippingModule } from './modules/shipping/shipping.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { CouponModule } from './modules/coupon/coupon.module';
     MulterModule,
     OrdersModule,
     CouponModule,
+    ShippingModule,
   ],
   controllers: [AppController],
   providers: [

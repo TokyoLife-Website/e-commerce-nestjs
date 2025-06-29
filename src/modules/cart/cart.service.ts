@@ -147,7 +147,9 @@ export class CartService {
       });
       cart.items.push(cartItem);
     }
-    cart.total = cart.items.reduce((acc, item) => acc + item.total, 0);
+    const total = cart.items.reduce((acc, item) => acc + item.total, 0);
+    cart.finalAmount = total;
+    cart.total = total;
     await this.cartItemRepository.save(cartItem);
     return await this.cartRepository.save(cart);
   }
@@ -313,9 +315,23 @@ export class CartService {
     }
     await this.cartItemRepository.remove(cartItem);
     cart.items = cart.items.filter((item) => item.id !== cartItemId);
-    cart.total = cart.items
-      .filter((item) => item.id !== cartItemId)
-      .reduce((acc, item) => acc + item.total, 0);
+    const total = cart.items.reduce((acc, item) => acc + item.total, 0);
+    cart.total = total;
+
+    if (cart.coupon) {
+      const { minOrderAmout } = cart.coupon;
+      if (minOrderAmout && minOrderAmout > total) {
+        cart.coupon = null;
+        cart.discountAmount = 0;
+        cart.finalAmount = total;
+      } else {
+        const discount = calculateDiscount(cart.coupon, total);
+        cart.discountAmount = discount;
+        cart.finalAmount = Math.max(0, total - discount);
+      }
+    } else {
+      cart.finalAmount = total;
+    }
     return await this.cartRepository.save(cart);
   }
 
@@ -324,6 +340,9 @@ export class CartService {
     await this.cartItemRepository.remove(cart.items);
     cart.items = [];
     cart.total = 0;
+    cart.coupon = null;
+    cart.discountAmount = 0;
+    cart.finalAmount = 0;
     await this.cartRepository.save(cart);
   }
 }

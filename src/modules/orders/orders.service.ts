@@ -133,6 +133,9 @@ export class OrdersService {
 
         // Update SKU quantity
         sku.quantity -= item.quantity;
+        sku.product.soldCount += item.quantity;
+        sku.product.stock -= item.quantity;
+        await queryRunner.manager.save(sku.product);
         await queryRunner.manager.save(sku);
       }
 
