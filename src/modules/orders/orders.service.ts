@@ -25,6 +25,7 @@ import { Pagination } from 'src/common/decorators/pagination-params.decorator';
 import { PaginationResource } from 'src/common/types/pagination-response.dto';
 import { Coupon } from '../coupon/entities/coupon.entity';
 import { ShippingService } from '../shipping/shipping.service';
+import { validateCoupon } from 'src/common/utils/validateCoupon';
 
 @Injectable()
 export class OrdersService {
@@ -170,10 +171,12 @@ export class OrdersService {
         coupon = await this.couponRepository.findOneByOrFail({
           code: cart.coupon.code,
         });
-        const { minOrderAmout } = coupon;
-        if (!minOrderAmout || orderTotal >= minOrderAmout) {
+        try {
+          validateCoupon(coupon, orderTotal);
           discount = calculateDiscount(coupon, orderTotal);
-        } else {
+          coupon.usedCount += 1;
+          await queryRunner.manager.save(coupon);
+        } catch (error) {
           coupon = null;
           discount = 0;
         }
@@ -278,12 +281,11 @@ export class OrdersService {
     await queryRunner.startTransaction();
     try {
       if (
-        order.status !== OrderStatus.DELIVERED &&
-        newStatus === OrderStatus.DELIVERED &&
+        order.status !== OrderStatus.CANCELLED &&
+        newStatus === OrderStatus.CANCELLED &&
         order.coupon
       ) {
-        console.log('running');
-        order.coupon.usedCount += 1;
+        order.coupon.usedCount = Math.max(0, order.coupon.usedCount - 1);
         await queryRunner.manager.save(order.coupon);
       }
       order.status = newStatus;

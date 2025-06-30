@@ -23,6 +23,7 @@ import { Coupon } from '../coupon/entities/coupon.entity';
 import { CouponStatus } from 'src/common/enum/couponStatus.enum';
 import * as dayjs from 'dayjs';
 import { CouponType } from 'src/common/enum/couponType.enum';
+import { validateCoupon } from 'src/common/utils/validateCoupon';
 
 @Injectable()
 export class CartService {
@@ -161,23 +162,7 @@ export class CartService {
       where: { code: dto.code },
     });
 
-    if (!coupon || coupon.status !== CouponStatus.ACTIVE)
-      throw new BadRequestException('Coupon is invalid or inactive');
-
-    const { minOrderAmout, startDate, endDate, usageLimit, usedCount } = coupon;
-
-    const now = dayjs();
-    if (dayjs(startDate).isAfter(now) || dayjs(endDate).isBefore(now))
-      throw new BadRequestException('Coupon is expired or not yet active');
-
-    if (usageLimit > 0 && usedCount >= usageLimit)
-      throw new BadRequestException('Coupon has been fully used');
-
-    if (minOrderAmout && cart.total < minOrderAmout)
-      throw new BadRequestException(
-        'Order does not meet minimum amount for coupon',
-      );
-
+    validateCoupon(coupon, cart.total);
     const discount = calculateDiscount(coupon, cart.total);
 
     const finalAmount = Math.max(0, cart.total - discount);
@@ -282,19 +267,18 @@ export class CartService {
           acc + (item.id === cartItemId ? cartItem.total : item.total),
         0,
       );
-
+      let discount = 0;
       if (cart.coupon) {
-        const { minOrderAmout } = cart.coupon;
-        if (minOrderAmout && total < minOrderAmout) {
+        try {
+          validateCoupon(cart.coupon, total);
+          discount = calculateDiscount(cart.coupon, total);
+        } catch (error) {
+          discount = 0;
           cart.coupon = null;
-          cart.discountAmount = 0;
-          cart.finalAmount = total;
-        } else {
-          const discount = calculateDiscount(cart.coupon, total);
-          cart.discountAmount = discount;
-          cart.finalAmount = Math.max(0, total - discount);
         }
-      } else cart.finalAmount = total;
+      }
+      cart.discountAmount = discount;
+      cart.finalAmount = Math.max(0, total - discount);
 
       cart.total = total;
       await manager.save(cart);
