@@ -29,6 +29,7 @@ import { ReviewModule } from './modules/review/review.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { CouponModule } from './modules/coupon/coupon.module';
 import { ShippingModule } from './modules/shipping/shipping.module';
+import { PaymentModule } from './modules/payment/payment.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { ShippingModule } from './modules/shipping/shipping.module';
     OrdersModule,
     CouponModule,
     ShippingModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [

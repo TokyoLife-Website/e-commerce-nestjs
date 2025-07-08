@@ -1,23 +1,23 @@
 import {
-  Controller,
-  Post,
   Body,
-  UseGuards,
-  Req,
+  Controller,
   InternalServerErrorException,
+  Post,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
 import { Request } from 'express';
-import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
-import { CreateUserDto } from '../users/dto/create-user.dto';
 import { Public } from 'src/common/decorators/public.decorator';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
-import { LoginDto } from './dto/login.dto';
-import { LoginResponseDto } from './dto/login-response.dto';
-import { User } from '../users/entities/user.entity';
+import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
 import { JwtRefreshAuthGuard } from 'src/common/guards/jwt-refresh-auth.guard';
+import { CreateUserDto } from '../users/dto/create-user.dto';
+import { User } from '../users/entities/user.entity';
+import { AuthService } from './auth.service';
 import { DecodedTokenDto } from './dto/decoded-token.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { LoginResponseDto } from './dto/login-response.dto';
+import { LoginDto } from './dto/login.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyOTPDto } from './dto/verify-otp.dto';
 
 @Public()

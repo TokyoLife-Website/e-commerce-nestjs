@@ -26,6 +26,7 @@ import { PaginationResource } from 'src/common/types/pagination-response.dto';
 import { Coupon } from '../coupon/entities/coupon.entity';
 import { ShippingService } from '../shipping/shipping.service';
 import { validateCoupon } from 'src/common/utils/validateCoupon';
+import { PaymentMethod } from 'src/common/enum/paymentMethode.enum';
 
 @Injectable()
 export class OrdersService {
@@ -92,7 +93,10 @@ export class OrdersService {
         address,
         paymentMethod,
         note,
-        status: OrderStatus.PENDING,
+        status:
+          paymentMethod === PaymentMethod.VN_PAY
+            ? OrderStatus.PENDING
+            : OrderStatus.PROCESSING,
         total: 0,
         shippingFee: 0,
         discount: 0,
