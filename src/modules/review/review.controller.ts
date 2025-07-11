@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Query } from '@nestjs/common';
 import { ReviewService } from './review.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { User } from '../users/entities/user.entity';
@@ -12,6 +12,7 @@ import {
   PaginationParams,
 } from 'src/common/decorators/pagination-params.decorator';
 import { FilterParams } from 'src/common/decorators/filter-params.decorator';
+import { ReviewStatus } from 'src/common/enum/reviewStatus.enum';
 
 @Controller('reviews')
 export class ReviewController {
@@ -32,5 +33,19 @@ export class ReviewController {
     @PaginationParams() paginationParams: Pagination,
   ) {
     return this.reviewService.findAll(filters, paginationParams);
+  }
+
+  @Get('products')
+  async getProductsByReviewStatus(
+    @FilterParams(['status'])
+    filters: { status: ReviewStatus },
+    @PaginationParams() paginationParams: Pagination,
+    @UserParams() user: User,
+  ) {
+    return this.reviewService.getMyOrderItemReviews(
+      user.id,
+      filters,
+      paginationParams,
+    );
   }
 }

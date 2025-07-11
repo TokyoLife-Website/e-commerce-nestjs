@@ -20,5 +20,5 @@ export class CreateReviewDto {
 
   @IsInt()
   @IsNotEmpty()
-  skuId: number;
+  orderItemId: number;
 }

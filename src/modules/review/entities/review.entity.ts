@@ -1,3 +1,5 @@
+import { OrderItem } from 'src/modules/orders/entities/order-item.entity';
+import { Order } from 'src/modules/orders/entities/order.entity';
 import { ProductSku } from 'src/modules/products/entities/product-sku.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import {
@@ -18,6 +20,16 @@ export class Review {
   @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user: User;
+
+  @Column()
+  orderItemId: number;
+
+  @ManyToOne(() => OrderItem, (item) => item.reviews, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'orderItemId' })
+  orderItem: OrderItem;
 
   @Column()
   userId: number;

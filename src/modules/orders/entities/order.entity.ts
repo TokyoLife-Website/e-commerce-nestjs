@@ -6,6 +6,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -25,7 +26,8 @@ export class Order {
   @Column()
   userId: number;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, (user) => user.orders)
+  @JoinColumn({ name: 'userId' })
   user: User;
 
   @ManyToOne(() => Address)
@@ -60,9 +62,6 @@ export class Order {
     eager: true,
   })
   items: OrderItem[];
-
-  @Column({ type: 'boolean', default: false })
-  isReviewed: boolean;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

@@ -19,6 +19,7 @@ import { WishList } from 'src/modules/wishlist/entities/wishlist.entity';
 import { Cart } from 'src/modules/cart/entities/cart.entity';
 import { Image } from '../../upload/entities/image.entity';
 import { Review } from 'src/modules/review/entities/review.entity';
+import { Order } from 'src/modules/orders/entities/order.entity';
 
 @Entity()
 export class User {
@@ -66,6 +67,9 @@ export class User {
 
   @OneToMany(() => Review, (review) => review.user)
   reviews: Review[];
+
+  @OneToMany(() => Order, (order) => order.user)
+  orders: Order[];
 
   @Column({ length: 6, unique: true, nullable: true })
   otp?: string;
