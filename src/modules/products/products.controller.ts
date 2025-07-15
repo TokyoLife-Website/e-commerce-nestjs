@@ -48,26 +48,26 @@ export class ProductsController {
 
   @Get()
   @Public()
-  findAll(@PaginationParams() paginationParams: Pagination) {
-    return this.productsService.findAll(paginationParams);
+  async findAll(@PaginationParams() paginationParams: Pagination) {
+    return await this.productsService.findAll(paginationParams);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.productsService.findOneById(id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    return await this.productsService.findOneById(id);
   }
 
   @Get('slug/:slug')
   @Public()
-  findOneBySlug(@Param('slug') slug: string) {
-    return this.productsService.findOneBySlug(slug);
+  async findOneBySlug(@Param('slug') slug: string) {
+    return await this.productsService.findOneBySlug(slug);
   }
 
   @Patch(':id')
-  update(
+  async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateProductDto: UpdateProductDto,
   ) {
-    return this.productsService.update(id, updateProductDto);
+    return await this.productsService.update(id, updateProductDto);
   }
 }

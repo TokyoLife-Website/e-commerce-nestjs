@@ -138,13 +138,21 @@ export class ProductsService {
     return product;
   }
 
-  async findOneBySlug(slug: string): Promise<Product> {
+  async findOneBySlug(
+    slug: string,
+  ): Promise<Product & { starCounts: { [star: number]: number } }> {
     const product = await this.productRepository.findOne({
       where: { slug },
       relations: ['skus'],
     });
     if (!product) throw new NotFoundException(`Product not found`);
-    return product;
+    const starCounts = await this.getStarCounts(product.id);
+    const result = Object.assign(
+      Object.create(Object.getPrototypeOf(product)),
+      product,
+      { starCounts },
+    );
+    return result;
   }
 
   async update(
@@ -272,5 +280,24 @@ export class ProductsService {
       updateSkus,
       deleteSkuIds,
     };
+  }
+
+  private async getStarCounts(
+    productId: number,
+  ): Promise<{ [star: number]: number }> {
+    const skus = await this.productSkuRepository.find({
+      where: { productId },
+      relations: ['reviews'],
+    });
+    const allReviews = skus.flatMap((sku) =>
+      sku.reviews.filter((r) => r.isActive),
+    );
+    const starCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    for (const review of allReviews) {
+      if (review.rating >= 1 && review.rating <= 5) {
+        starCounts[review.rating]++;
+      }
+    }
+    return starCounts;
   }
 }
