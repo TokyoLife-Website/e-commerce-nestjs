@@ -1,6 +1,5 @@
 import { Category } from 'src/modules/categories/entities/category.entity';
 import {
-  AfterLoad,
   BeforeInsert,
   BeforeUpdate,
   Column,
@@ -15,7 +14,6 @@ import {
 import { ProductSku } from './product-sku.entity';
 import slugify from 'slugify';
 import { DiscountType } from 'src/common/enum/discountType.enum';
-import { Review } from 'src/modules/review/entities/review.entity';
 
 @Entity()
 export class Product {
@@ -44,6 +42,9 @@ export class Product {
 
   @Column({ type: 'double', nullable: true })
   discountValue: number;
+
+  @Column({ type: 'double', nullable: true })
+  finalPrice: number;
 
   @Column({ default: true })
   isActive: boolean;
@@ -82,5 +83,17 @@ export class Product {
   @BeforeUpdate()
   generateSlug() {
     this.slug = slugify(this.name, { lower: true });
+  }
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  calculateFinalPrice() {
+    if (this.discountType === DiscountType.PERCENTAGE && this.discountValue) {
+      this.finalPrice = this.price - (this.price * this.discountValue) / 100;
+    } else if (this.discountType === DiscountType.FIXED && this.discountValue) {
+      this.finalPrice = this.price - this.discountValue;
+    } else {
+      this.finalPrice = this.price;
+    }
   }
 }

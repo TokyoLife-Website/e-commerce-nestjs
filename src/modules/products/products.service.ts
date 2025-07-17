@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, In, Repository, SelectQueryBuilder } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ProductSku } from './entities/product-sku.entity';
 import { Product } from './entities/product.entity';
@@ -15,6 +15,9 @@ import { PaginationResource } from 'src/common/types/pagination-response.dto';
 import { ProductSkuDto } from './dto/create-product-sku.entity';
 import { MulterService } from '../multer/multer.service';
 import { Review } from '../review/entities/review.entity';
+import { SearchProductsDto } from './dto/search-product.dto';
+import { SortType } from 'src/common/enum/sortType.enum';
+import { DiscountType } from 'src/common/enum/discountType.enum';
 
 @Injectable()
 export class ProductsService {
@@ -37,6 +40,74 @@ export class ProductsService {
   //     createProductAttributeDto,
   //   );
   // }
+
+  private applySorting(
+    query: SelectQueryBuilder<Product>,
+    sort?: SortType,
+  ): SelectQueryBuilder<Product> {
+    console.log(sort);
+    if (!sort) {
+      return query.orderBy('product.createdAt', 'DESC');
+    }
+
+    switch (sort) {
+      case SortType.RATING_DESC:
+        return query.orderBy('product.rating', 'DESC');
+
+      case SortType.RATING_ASC:
+        return query.orderBy('product.rating', 'ASC');
+
+      case SortType.LATEST_DESC:
+        return query.orderBy('product.createdAt', 'DESC');
+
+      case SortType.LATEST_ASC:
+        return query.orderBy('product.createdAt', 'ASC');
+
+      case SortType.PRICE_ASC:
+        return query.orderBy('product.finalPrice', 'ASC');
+
+      case SortType.PRICE_DESC:
+        return query.orderBy('product.finalPrice', 'DESC');
+
+      case SortType.NAME_ASC:
+        return query.orderBy('product.name', 'ASC');
+
+      case SortType.NAME_DESC:
+        return query.orderBy('product.name', 'DESC');
+
+      case SortType.DISCOUNT_DESC:
+        query = query.addSelect(
+          `
+          CASE
+            WHEN product.discountType = '${DiscountType.PERCENTAGE}' THEN (product.price * product.discountValue / 100)
+            WHEN product.discountType = '${DiscountType.FIXED}' THEN product.discountValue
+            ELSE 0
+          END
+          `,
+          'actualDiscount',
+        );
+        return query.orderBy('actualDiscount', 'DESC');
+
+      case SortType.DISCOUNT_ASC:
+        query = query.addSelect(
+          `
+          CASE
+            WHEN product.discountType = '${DiscountType.PERCENTAGE}' THEN (product.price * product.discountValue / 100)
+            WHEN product.discountType = '${DiscountType.FIXED}' THEN product.discountValue
+            ELSE 0
+          END
+          `,
+          'actualDiscount',
+        );
+        return query.orderBy('actualDiscount', 'ASC');
+
+      case SortType.SOLD_DESC:
+        return query.orderBy('product.soldCount', 'DESC');
+
+      default:
+        return query.orderBy('product.createdAt', 'DESC');
+    }
+  }
 
   async createProduct(createProductDto: CreateProductDto) {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -108,18 +179,54 @@ export class ProductsService {
     }
   }
 
-  async findAll({
-    limit,
-    offset,
-    page,
-    size,
-  }: Pagination): Promise<PaginationResource<Partial<Product>>> {
-    const [products, total] = await this.productRepository.findAndCount({
-      relations: ['category', 'skus'],
-      order: { createdAt: 'DESC' },
-      take: limit,
-      skip: offset,
-    });
+  async findAll(
+    { limit, offset, page, size }: Pagination,
+    dto: SearchProductsDto,
+  ): Promise<PaginationResource<Partial<Product>>> {
+    const { keyword, color, price, sort } = dto;
+
+    let query = this.productRepository
+      .createQueryBuilder('product')
+      .where('product.isActive = :status', { status: true });
+
+    // const [products, total] = await this.productRepository.findAndCount({
+    //   relations: ['category', 'skus'],
+    //   order: { createdAt: 'DESC' },
+    //   take: limit,
+    //   skip: offset,
+    // });
+
+    if (keyword) {
+      query = query.andWhere(
+        `(
+          LOWER(product.name) LIKE LOWER(:keyword) OR 
+          LOWER(product.description) LIKE LOWER(:keyword) 
+        )`,
+        { keyword: `%${keyword}%` },
+      );
+    }
+
+    // Price range filter
+    if (price && price.min !== undefined && price.max !== undefined) {
+      query = query.andWhere(
+        'product.price >= :minPrice AND product.price <= :maxPrice',
+        { minPrice: price.min, maxPrice: price.max },
+      );
+    }
+
+    query = this.applySorting(query, sort);
+
+    if (color) {
+      query.leftJoinAndSelect('product.skus', 'sku');
+      query = query.andWhere('LOWER(sku.color) = LOWER(:color)', { color });
+    }
+
+    const total = await query.getCount();
+
+    query = query.skip(offset).take(limit);
+
+    const products = await query.getMany();
+
     return {
       items: products,
       page,

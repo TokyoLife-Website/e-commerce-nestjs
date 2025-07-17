@@ -13,16 +13,9 @@ import { CreateCartItemDto } from './dto/create-cart-item.dto';
 import { ProductSku } from '../products/entities/product-sku.entity';
 import { CartItem } from './entities/cart-item.entity';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
-import { DiscountType } from 'src/common/enum/discountType.enum';
-import {
-  calculateDiscount,
-  calculateDiscountedPrice,
-} from 'src/common/utils/calculateDiscountedPrice';
+import { calculateDiscount } from 'src/common/utils/calculateDiscountedPrice';
 import { ApplyCouponDto } from './dto/apply-coupon.dto';
 import { Coupon } from '../coupon/entities/coupon.entity';
-import { CouponStatus } from 'src/common/enum/couponStatus.enum';
-import * as dayjs from 'dayjs';
-import { CouponType } from 'src/common/enum/couponType.enum';
 import { validateCoupon } from 'src/common/utils/validateCoupon';
 
 @Injectable()
@@ -129,22 +122,12 @@ export class CartService {
         );
       }
       cartItem.quantity = totalQuantity;
-      const discountedPrice = calculateDiscountedPrice(
-        productSku.product.price,
-        productSku.product.discountType,
-        productSku.product.discountValue,
-      );
-      cartItem.total = totalQuantity * discountedPrice;
+      cartItem.total = totalQuantity * productSku.product.finalPrice;
     } else {
-      const discountedPrice = calculateDiscountedPrice(
-        productSku.product.price,
-        productSku.product.discountType,
-        productSku.product.discountValue,
-      );
       cartItem = this.cartItemRepository.create({
         sku: productSku,
         quantity,
-        total: quantity * discountedPrice,
+        total: quantity * productSku.product.finalPrice,
       });
       cart.items.push(cartItem);
     }
@@ -215,12 +198,7 @@ export class CartService {
             throw new BadRequestException(`Only ${newSku.quantity} in stock`);
           }
           existingItem.quantity = totalQty;
-          const discountedPrice = calculateDiscountedPrice(
-            newSku.product.price,
-            newSku.product.discountType,
-            newSku.product.discountValue,
-          );
-          existingItem.total = totalQty * discountedPrice;
+          existingItem.total = totalQty * newSku.product.finalPrice;
           await manager.save(existingItem);
 
           // Load cart item from database before removing
@@ -238,12 +216,7 @@ export class CartService {
           }
           cartItem.sku = newSku;
           cartItem.quantity = updatedQuantity;
-          const discountedPrice = calculateDiscountedPrice(
-            newSku.product.price,
-            newSku.product.discountType,
-            newSku.product.discountValue,
-          );
-          cartItem.total = updatedQuantity * discountedPrice;
+          cartItem.total = updatedQuantity * newSku.product.finalPrice;
           await manager.save(cartItem);
         }
       } else {
@@ -253,12 +226,8 @@ export class CartService {
           );
         }
         cartItem.quantity = updatedQuantity;
-        const discountedPrice = calculateDiscountedPrice(
-          cartItem.sku.product.price,
-          cartItem.sku.product.discountType,
-          cartItem.sku.product.discountValue,
-        );
-        cartItem.total = updatedQuantity * discountedPrice;
+
+        cartItem.total = updatedQuantity * cartItem.sku.product.finalPrice;
         await manager.save(cartItem);
       }
 

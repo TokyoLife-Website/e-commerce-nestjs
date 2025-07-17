@@ -13,10 +13,7 @@ import { OrderItem } from './entities/order-item.entity';
 import { User } from '../users/entities/user.entity';
 import { ProductSku } from '../products/entities/product-sku.entity';
 import { UsersService } from '../users/users.service';
-import {
-  calculateDiscount,
-  calculateDiscountedPrice,
-} from 'src/common/utils/calculateDiscountedPrice';
+import { calculateDiscount } from 'src/common/utils/calculateDiscountedPrice';
 import { CartService } from '../cart/cart.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -122,12 +119,7 @@ export class OrdersService {
             `Product ${sku?.product?.name || ''} is out of stock`,
           );
         }
-        const discountedPrice = calculateDiscountedPrice(
-          sku.product.price,
-          sku.product.discountType,
-          sku.product.discountValue,
-        );
-        const itemTotal = discountedPrice * item.quantity;
+        const itemTotal = sku.product.finalPrice * item.quantity;
         orderTotal += itemTotal;
 
         // Create order item
@@ -135,7 +127,7 @@ export class OrdersService {
           order: savedOrder,
           sku,
           quantity: item.quantity,
-          price: discountedPrice,
+          price: sku.product.finalPrice,
           total: itemTotal,
         });
 

@@ -10,6 +10,8 @@ import {
   ParseIntPipe,
   UseInterceptors,
   UploadedFiles,
+  ValidationPipe,
+  Query,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -22,6 +24,7 @@ import {
   PaginationParams,
 } from 'src/common/decorators/pagination-params.decorator';
 import { Public } from 'src/common/decorators/public.decorator';
+import { SearchProductsDto } from './dto/search-product.dto';
 
 @Controller('products')
 export class ProductsController {
@@ -48,8 +51,11 @@ export class ProductsController {
 
   @Get()
   @Public()
-  async findAll(@PaginationParams() paginationParams: Pagination) {
-    return await this.productsService.findAll(paginationParams);
+  async findAll(
+    @PaginationParams() paginationParams: Pagination,
+    @Query(ValidationPipe) dto: SearchProductsDto,
+  ) {
+    return await this.productsService.findAll(paginationParams, dto);
   }
 
   @Get(':id')
