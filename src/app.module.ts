@@ -30,6 +30,9 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { CouponModule } from './modules/coupon/coupon.module';
 import { ShippingModule } from './modules/shipping/shipping.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { WebSocketModule } from './modules/websocket/websocket.module';
+import { NotificationModule } from './modules/notification/notification.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
@@ -37,6 +40,7 @@ import { PaymentModule } from './modules/payment/payment.module';
       envFilePath: [join(__dirname, '../../.env')],
       isGlobal: true,
     }),
+    EventEmitterModule.forRoot(),
     DatabaseModule,
     UsersModule,
     AuthModule,
@@ -54,6 +58,8 @@ import { PaymentModule } from './modules/payment/payment.module';
     CouponModule,
     ShippingModule,
     PaymentModule,
+    WebSocketModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [

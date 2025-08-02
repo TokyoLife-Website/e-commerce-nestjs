@@ -45,7 +45,6 @@ export class ProductsController {
   @Roles(Role.Admin)
   @UseGuards(RolesGuard)
   async createProduct(@Body() createProductDto: CreateProductDto) {
-    console.log(createProductDto);
     return this.productsService.createProduct(createProductDto);
   }
 

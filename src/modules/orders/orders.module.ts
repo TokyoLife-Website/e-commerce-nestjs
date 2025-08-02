@@ -12,6 +12,7 @@ import { EmailModule } from '../email/email.module';
 import { BullConfigModule } from '../bullMQ/bullMQ.module';
 import { Coupon } from '../coupon/entities/coupon.entity';
 import { ShippingModule } from '../shipping/shipping.module';
+import { NotificationModule } from '../notification';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ShippingModule } from '../shipping/shipping.module';
     EmailModule,
     BullConfigModule,
     ShippingModule,
+    NotificationModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService],

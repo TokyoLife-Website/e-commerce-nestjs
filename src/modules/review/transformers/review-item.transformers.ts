@@ -20,7 +20,6 @@ export class ReviewItemTransformer {
     const oi = review.orderItem;
     const sku = oi.sku;
     const product = sku.product;
-    console.log(review);
     return {
       productId: product.id,
       productName: product.name,

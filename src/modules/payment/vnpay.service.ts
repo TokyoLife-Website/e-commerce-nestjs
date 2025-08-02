@@ -123,7 +123,6 @@ export class VNPayService {
 
     // Kiểm tra response code từ VNPay
     const responseCode = vnpParams.vnp_ResponseCode;
-    console.log(responseCode);
     if (responseCode === '00') {
       return {
         isValid: true,

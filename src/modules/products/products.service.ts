@@ -45,7 +45,6 @@ export class ProductsService {
     query: SelectQueryBuilder<Product>,
     sort?: SortType,
   ): SelectQueryBuilder<Product> {
-    console.log(sort);
     if (!sort) {
       return query.orderBy('product.createdAt', 'DESC');
     }
@@ -209,7 +208,7 @@ export class ProductsService {
     // Price range filter
     if (price && price.min !== undefined && price.max !== undefined) {
       query = query.andWhere(
-        'product.price >= :minPrice AND product.price <= :maxPrice',
+        'product.finalPrice >= :minPrice AND product.finalPrice <= :maxPrice',
         { minPrice: price.min, maxPrice: price.max },
       );
     }
@@ -278,7 +277,6 @@ export class ProductsService {
       const deletedImages = oldImages.filter(
         (image) => !newImages.includes(image),
       );
-      console.log(deletedImages);
       if (deletedImages.length > 0) {
         for (const imageUrl of deletedImages) {
           const fileName = imageUrl.split('/').pop();
@@ -321,7 +319,6 @@ export class ProductsService {
     const allReviews = skus.flatMap((sku) =>
       sku.reviews.filter((r) => r.isActive),
     );
-    console.log(allReviews);
 
     if (allReviews.length > 0) {
       const totalRating = allReviews.reduce(

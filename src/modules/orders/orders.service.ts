@@ -8,6 +8,7 @@ import { Order } from './entities/order.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { OrderStatus } from 'src/common/enum/orderStatus.enum';
+import { Role } from 'src/common/enum/role.enum';
 import { AddressesService } from '../addresses/addresses.service';
 import { OrderItem } from './entities/order-item.entity';
 import { User } from '../users/entities/user.entity';
@@ -24,6 +25,8 @@ import { Coupon } from '../coupon/entities/coupon.entity';
 import { ShippingService } from '../shipping/shipping.service';
 import { validateCoupon } from 'src/common/utils/validateCoupon';
 import { PaymentMethod } from 'src/common/enum/paymentMethode.enum';
+import { NotificationType } from '../notification/entities/notification.entity';
+import { NotificationService } from '../notification';
 
 @Injectable()
 export class OrdersService {
@@ -42,6 +45,7 @@ export class OrdersService {
     private readonly cartService: CartService,
     private readonly shippingService: ShippingService,
     @InjectQueue(queueName.MAIL) private readonly mailQueue: Queue,
+    private readonly notificationService: NotificationService,
   ) {}
 
   private generateOrderNumber(): string {
@@ -50,6 +54,39 @@ export class OrdersService {
       .toString()
       .padStart(3, '0');
     return `ORD-${timestamp}-${random}`;
+  }
+
+  private async notifyAdminNewOrder(order: Order): Promise<void> {
+    try {
+      // Tìm tất cả admin users
+      const adminUsers = await this.userRepository.find({
+        where: { role: Role.Admin },
+      });
+
+      // Tạo notification cho từng admin
+      for (const admin of adminUsers) {
+        await this.notificationService.sendNotificationToUser(
+          admin.id.toString(),
+          {
+            userId: admin.id.toString(),
+            title: 'Đơn hàng mới',
+            message: `Có đơn hàng mới #${order.code} từ ${order.user.firstName} ${order.user.lastName} với tổng tiền ${order.finalAmount.toLocaleString('vi-VN')}đ`,
+            type: NotificationType.INFO,
+            data: {
+              orderId: order.id,
+              orderCode: order.code,
+              customerName: `${order.user.firstName} ${order.user.lastName}`,
+              amount: order.finalAmount,
+              status: order.status,
+              createdAt: order.createdAt,
+            },
+          },
+        );
+      }
+    } catch (error) {
+      console.error('Failed to send admin notification:', error);
+      // Không throw error để không ảnh hưởng đến việc tạo order
+    }
   }
 
   private isValidStatusTransition(
@@ -194,6 +231,10 @@ export class OrdersService {
         user,
         order: savedOrder,
       });
+
+      // Gửi notification cho admin
+      await this.notifyAdminNewOrder(savedOrder);
+
       return savedOrder;
     } catch (error) {
       console.error('Failed to create order', error);
