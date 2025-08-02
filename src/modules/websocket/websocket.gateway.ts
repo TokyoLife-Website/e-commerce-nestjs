@@ -12,10 +12,11 @@ import { UseGuards } from '@nestjs/common';
 import { WsJwtAuthGuard } from './guards/ws-jwt-auth.guard';
 import { WebSocketService } from './websocket.service';
 import { SocketUser } from './interfaces/socket.interface';
-import { CreateChatMessageDto } from './dto/chat-message.dto';
 import { SendAIMessageDto } from './dto/ai-chat.dto';
 import { OnEvent } from '@nestjs/event-emitter';
 import { NotificationService } from '../notification/notification.service';
+import { ChatService } from '../chat/chat.service';
+import { CreateChatMessageDto } from '../chat';
 
 @WebSocketGateway({
   cors: {
@@ -34,13 +35,14 @@ export class WebSocketGatewayClass
   constructor(
     private readonly webSocketService: WebSocketService,
     private readonly notificationService: NotificationService,
+    private readonly chatService: ChatService,
   ) {}
 
   async handleConnection(client: Socket) {
     try {
       const user = await this.webSocketService.authenticateUser(client);
       if (user) {
-        await this.webSocketService.addUserToSocketMap(user.userId, client.id);
+        await this.chatService.addUserToSocketMap(user.userId, client.id);
         client.data.user = user;
 
         // Join user to their personal room
@@ -64,7 +66,7 @@ export class WebSocketGatewayClass
     try {
       const user = client.data.user as SocketUser;
       if (user) {
-        await this.webSocketService.removeUserFromSocketMap(user.userId);
+        await this.chatService.removeUserFromSocketMap(user.userId);
         this.server.emit('user:disconnect', user.userId);
         console.log(`User ${user.username} disconnected`);
       }
@@ -80,7 +82,7 @@ export class WebSocketGatewayClass
   ) {
     try {
       const user = client.data.user as SocketUser;
-      const message = await this.webSocketService.createChatMessage(
+      const message = await this.chatService.createChatMessage(
         user.userId,
         data,
       );
@@ -90,7 +92,7 @@ export class WebSocketGatewayClass
 
       // Emit to receiver or room
       if (data.receiverId) {
-        const receiverSocketId = await this.webSocketService.getUserSocketId(
+        const receiverSocketId = await this.chatService.getUserSocketId(
           data.receiverId,
         );
         if (receiverSocketId) {
@@ -140,7 +142,7 @@ export class WebSocketGatewayClass
   ) {
     try {
       const user = client.data.user as SocketUser;
-      await this.webSocketService.markMessageAsRead(messageId, user.userId);
+      await this.chatService.markMessageAsRead(messageId, user.userId);
 
       this.server.emit('chat:read', {
         messageId,
@@ -259,7 +261,7 @@ export class WebSocketGatewayClass
       // Join all participants to the room
       for (const participantId of data.participants) {
         const participantSocketId =
-          await this.webSocketService.getUserSocketId(participantId);
+          await this.chatService.getUserSocketId(participantId);
         if (participantSocketId) {
           this.server.to(participantSocketId).emit('room:create', {
             roomId: room.id,

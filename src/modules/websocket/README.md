@@ -4,18 +4,11 @@ Module này cung cấp chức năng real-time cho ứng dụng e-commerce bao g�
 
 ## Tính năng
 
-### 1. Chat Real-time
+### 1. Real-time Communication
 
-- Chat giữa user và admin
-- Chat nhóm (room-based)
-- Typing indicators
-- Message read status
-
-### 2. Real-time Communication
-
-- Real-time event handling
 - WebSocket connection management
 - User authentication và authorization
+- Event handling cho các module khác
 
 ### 3. AI Chat
 
@@ -76,11 +69,11 @@ socket.emit('ai:message', {
 
 ### REST API Endpoints
 
-#### Chat
+#### Chat (đã chuyển sang Chat Module)
 
-- `GET /websocket/chat/messages` - Lấy tin nhắn
-- `POST /websocket/chat/messages` - Gửi tin nhắn
-- `PUT /websocket/chat/messages/:messageId/read` - Đánh dấu đã đọc
+- `GET /chat/messages` - Lấy tin nhắn
+- `POST /chat/messages` - Gửi tin nhắn
+- `PUT /chat/messages/:messageId/read` - Đánh dấu đã đọc
 
 #### Notifications (đã chuyển sang Notification Module)
 

@@ -5,19 +5,13 @@ import { Repository } from 'typeorm';
 import { Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
-import { ChatMessage } from './entities/chat-message.entity';
 import { AIChatMessage, AIConversation } from './entities/ai-chat.entity';
 import { SocketUser } from './interfaces/socket.interface';
-import { CreateChatMessageDto } from './dto/chat-message.dto';
 import { SendAIMessageDto } from './dto/ai-chat.dto';
 
 @Injectable()
 export class WebSocketService {
-  private userSocketMap = new Map<string, string>(); // userId -> socketId
-
   constructor(
-    @InjectRepository(ChatMessage)
-    private chatMessageRepository: Repository<ChatMessage>,
     @InjectRepository(AIChatMessage)
     private aiChatMessageRepository: Repository<AIChatMessage>,
     @InjectRepository(AIConversation)
@@ -63,68 +57,6 @@ export class WebSocketService {
 
     const [type, token] = auth.split(' ') ?? [];
     return type === 'Bearer' ? token : auth;
-  }
-
-  async addUserToSocketMap(userId: string, socketId: string): Promise<void> {
-    this.userSocketMap.set(userId, socketId);
-  }
-
-  async removeUserFromSocketMap(userId: string): Promise<void> {
-    this.userSocketMap.delete(userId);
-  }
-
-  async getUserSocketId(userId: string): Promise<string | undefined> {
-    return this.userSocketMap.get(userId);
-  }
-
-  // Chat Message Methods
-  async createChatMessage(
-    senderId: string,
-    data: CreateChatMessageDto,
-  ): Promise<ChatMessage> {
-    const message = this.chatMessageRepository.create({
-      senderId,
-      receiverId: data.receiverId,
-      content: data.content,
-      type: data.type,
-      roomId: data.roomId,
-    });
-
-    return await this.chatMessageRepository.save(message);
-  }
-
-  async getChatMessages(
-    userId: string,
-    otherUserId?: string,
-    roomId?: string,
-  ): Promise<ChatMessage[]> {
-    const query = this.chatMessageRepository
-      .createQueryBuilder('message')
-      .leftJoinAndSelect('message.sender', 'sender')
-      .leftJoinAndSelect('message.receiver', 'receiver')
-      .where('message.senderId = :userId OR message.receiverId = :userId', {
-        userId,
-      });
-
-    if (otherUserId) {
-      query.andWhere(
-        '(message.senderId = :otherUserId OR message.receiverId = :otherUserId)',
-        { otherUserId },
-      );
-    }
-
-    if (roomId) {
-      query.andWhere('message.roomId = :roomId', { roomId });
-    }
-
-    return await query.orderBy('message.createdAt', 'ASC').getMany();
-  }
-
-  async markMessageAsRead(messageId: string, userId: string): Promise<void> {
-    await this.chatMessageRepository.update(
-      { id: messageId, receiverId: userId },
-      { isRead: true },
-    );
   }
 
   // AI Chat Methods

@@ -32,6 +32,7 @@ import { ShippingModule } from './modules/shipping/shipping.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { WebSocketModule } from './modules/websocket/websocket.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { ChatModule } from './modules/chat/chat.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
@@ -60,6 +61,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     PaymentModule,
     WebSocketModule,
     NotificationModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [
