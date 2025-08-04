@@ -8,36 +8,21 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { Conversation } from './conversation.entity';
 
-export enum MessageType {
-  TEXT = 'text',
-  IMAGE = 'image',
-  FILE = 'file',
-}
-
-@Entity('chat_messages')
-export class ChatMessage {
+@Entity('messages')
+export class Message {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @ManyToOne(() => Conversation, (c) => c.messages)
+  conversation: Conversation;
 
   @Column({ type: 'uuid' })
   senderId: string;
 
-  @Column({ type: 'uuid', nullable: true })
-  receiverId: string;
-
   @Column({ type: 'text' })
   content: string;
-
-  @Column({
-    type: 'enum',
-    enum: MessageType,
-    default: MessageType.TEXT,
-  })
-  type: MessageType;
-
-  @Column({ type: 'uuid', nullable: true })
-  roomId: string;
 
   @Column({ type: 'boolean', default: false })
   isRead: boolean;
@@ -49,11 +34,7 @@ export class ChatMessage {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User)
   @JoinColumn({ name: 'senderId' })
   sender: User;
-
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'receiverId' })
-  receiver: User;
 }

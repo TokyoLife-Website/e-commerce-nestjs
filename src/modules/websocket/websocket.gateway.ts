@@ -16,7 +16,6 @@ import { SendAIMessageDto } from './dto/ai-chat.dto';
 import { OnEvent } from '@nestjs/event-emitter';
 import { NotificationService } from '../notification/notification.service';
 import { ChatService } from '../chat/chat.service';
-import { CreateChatMessageDto } from '../chat';
 
 @WebSocketGateway({
   cors: {
@@ -75,86 +74,86 @@ export class WebSocketGatewayClass
     }
   }
 
-  @SubscribeMessage('chat:message')
-  async handleChatMessage(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: CreateChatMessageDto,
-  ) {
-    try {
-      const user = client.data.user as SocketUser;
-      const message = await this.chatService.createChatMessage(
-        user.userId,
-        data,
-      );
+  // @SubscribeMessage('chat:message')
+  // async handleChatMessage(
+  //   @ConnectedSocket() client: Socket,
+  //   @MessageBody() data: CreateChatMessageDto,
+  // ) {
+  //   try {
+  //     const user = client.data.user as SocketUser;
+  //     const message = await this.chatService.createChatMessage(
+  //       user.userId,
+  //       data,
+  //     );
 
-      // Emit to sender
-      client.emit('chat:message', message);
+  //     // Emit to sender
+  //     client.emit('chat:message', message);
 
-      // Emit to receiver or room
-      if (data.receiverId) {
-        const receiverSocketId = await this.chatService.getUserSocketId(
-          data.receiverId,
-        );
-        if (receiverSocketId) {
-          this.server.to(receiverSocketId).emit('chat:message', message);
-        }
-      } else if (data.roomId) {
-        this.server.to(`room:${data.roomId}`).emit('chat:message', message);
-      }
-    } catch (error) {
-      client.emit('system:error', {
-        message: 'Failed to send message',
-        code: 'CHAT_ERROR',
-      });
-    }
-  }
+  //     // Emit to receiver or room
+  //     if (data.receiverId) {
+  //       const receiverSocketId = await this.chatService.getUserSocketId(
+  //         data.receiverId,
+  //       );
+  //       if (receiverSocketId) {
+  //         this.server.to(receiverSocketId).emit('chat:message', message);
+  //       }
+  //     } else if (data.roomId) {
+  //       this.server.to(`room:${data.roomId}`).emit('chat:message', message);
+  //     }
+  //   } catch (error) {
+  //     client.emit('system:error', {
+  //       message: 'Failed to send message',
+  //       code: 'CHAT_ERROR',
+  //     });
+  //   }
+  // }
 
-  @SubscribeMessage('chat:typing')
-  async handleChatTyping(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { roomId?: string; isTyping: boolean },
-  ) {
-    try {
-      const user = client.data.user as SocketUser;
+  // @SubscribeMessage('chat:typing')
+  // async handleChatTyping(
+  //   @ConnectedSocket() client: Socket,
+  //   @MessageBody() data: { roomId?: string; isTyping: boolean },
+  // ) {
+  //   try {
+  //     const user = client.data.user as SocketUser;
 
-      if (data.roomId) {
-        this.server.to(`room:${data.roomId}`).emit('chat:typing', {
-          userId: user.userId,
-          roomId: data.roomId,
-          isTyping: data.isTyping,
-        });
-      } else {
-        // For direct messages, emit to specific user
-        // This would need to be implemented based on your chat logic
-      }
-    } catch (error) {
-      client.emit('system:error', {
-        message: 'Failed to send typing status',
-        code: 'TYPING_ERROR',
-      });
-    }
-  }
+  //     if (data.roomId) {
+  //       this.server.to(`room:${data.roomId}`).emit('chat:typing', {
+  //         userId: user.userId,
+  //         roomId: data.roomId,
+  //         isTyping: data.isTyping,
+  //       });
+  //     } else {
+  //       // For direct messages, emit to specific user
+  //       // This would need to be implemented based on your chat logic
+  //     }
+  //   } catch (error) {
+  //     client.emit('system:error', {
+  //       message: 'Failed to send typing status',
+  //       code: 'TYPING_ERROR',
+  //     });
+  //   }
+  // }
 
-  @SubscribeMessage('chat:read')
-  async handleChatRead(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() messageId: string,
-  ) {
-    try {
-      const user = client.data.user as SocketUser;
-      await this.chatService.markMessageAsRead(messageId, user.userId);
+  // @SubscribeMessage('chat:read')
+  // async handleChatRead(
+  //   @ConnectedSocket() client: Socket,
+  //   @MessageBody() messageId: string,
+  // ) {
+  //   try {
+  //     const user = client.data.user as SocketUser;
+  //     await this.chatService.markMessageAsRead(messageId, user.userId);
 
-      this.server.emit('chat:read', {
-        messageId,
-        userId: user.userId,
-      });
-    } catch (error) {
-      client.emit('system:error', {
-        message: 'Failed to mark message as read',
-        code: 'READ_ERROR',
-      });
-    }
-  }
+  //     this.server.emit('chat:read', {
+  //       messageId,
+  //       userId: user.userId,
+  //     });
+  //   } catch (error) {
+  //     client.emit('system:error', {
+  //       message: 'Failed to mark message as read',
+  //       code: 'READ_ERROR',
+  //     });
+  //   }
+  // }
 
   @SubscribeMessage('ai:message')
   async handleAIMessage(

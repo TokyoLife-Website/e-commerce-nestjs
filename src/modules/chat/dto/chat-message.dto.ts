@@ -1,48 +1,64 @@
-import { IsString, IsOptional, IsEnum, IsUUID } from 'class-validator';
-import { MessageType } from '../entities/chat-message.entity';
+import { IsString, IsOptional, IsUUID, IsNumber, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 
-export class CreateChatMessageDto {
+export class SendMessageDto {
   @IsString()
   content: string;
 
-  @IsOptional()
-  @IsUUID()
-  receiverId?: string;
-
-  @IsOptional()
-  @IsUUID()
-  roomId?: string;
-
-  @IsOptional()
-  @IsEnum(MessageType)
-  type?: MessageType = MessageType.TEXT;
+  @IsNumber()
+  receiverId: string;
 }
 
-export class UpdateChatMessageDto {
-  @IsOptional()
-  @IsString()
-  content?: string;
-
-  @IsOptional()
-  @IsEnum(MessageType)
-  type?: MessageType;
-}
-
-export class MarkMessageAsReadDto {
+export class GetMessagesDto {
   @IsUUID()
-  messageId: string;
-}
-
-export class JoinRoomDto {
-  @IsUUID()
-  roomId: string;
-}
-
-export class CreateRoomDto {
-  @IsString()
-  name: string;
+  conversationId: string;
 
   @IsOptional()
-  @IsUUID(undefined, { each: true })
-  participants?: string[];
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  limit?: number = 50;
+}
+
+export class MarkAsReadDto {
+  @IsUUID()
+  conversationId: string;
+}
+
+export class ConversationResponseDto {
+  id: string;
+  receiverId: string;
+  receiver: {
+    id: string;
+    fullName: string;
+    email: string;
+    avatar?: string;
+  };
+  lastMessage?: {
+    id: string;
+    content: string;
+    createdAt: Date;
+    senderId: string;
+  };
+  unreadCount: number;
+  updatedAt: Date;
+}
+
+export class MessageResponseDto {
+  id: string;
+  content: string;
+  senderId: string;
+  isRead: boolean;
+  createdAt: Date;
+  sender: {
+    id: string;
+    fullName: string;
+    avatar?: string;
+  };
 }

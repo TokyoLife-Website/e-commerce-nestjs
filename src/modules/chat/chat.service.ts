@@ -1,16 +1,23 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ChatMessage } from './entities/chat-message.entity';
-import { CreateChatMessageDto } from './dto/chat-message.dto';
+import { Conversation } from './entities/conversation.entity';
+import { Message } from './entities/message.entity';
+import {
+  ConversationResponseDto,
+  MessageResponseDto,
+  SendMessageDto,
+} from './dto/chat-message.dto';
 
 @Injectable()
 export class ChatService {
   private userSocketMap = new Map<string, string>(); // userId -> socketId
 
   constructor(
-    @InjectRepository(ChatMessage)
-    private chatMessageRepository: Repository<ChatMessage>,
+    @InjectRepository(Conversation)
+    private conversationRepository: Repository<Conversation>,
+    @InjectRepository(Message)
+    private messageRepository: Repository<Message>,
   ) {}
 
   // Socket Management
@@ -26,92 +33,232 @@ export class ChatService {
     return this.userSocketMap.get(userId);
   }
 
-  // Chat Message Methods
-  async createChatMessage(
+  // Find or create conversation between two users
+  async findOrCreateConversation(
     senderId: string,
-    data: CreateChatMessageDto,
-  ): Promise<ChatMessage> {
-    const message = this.chatMessageRepository.create({
-      senderId,
-      receiverId: data.receiverId,
-      content: data.content,
-      type: data.type,
-      roomId: data.roomId,
+    receiverId: string,
+  ): Promise<Conversation> {
+    // Check if conversation exists (either direction)
+    let conversation = await this.conversationRepository.findOne({
+      where: [
+        { senderId, receiverId },
+        { senderId: receiverId, receiverId: senderId },
+      ],
+      relations: ['sender', 'receiver'],
     });
 
-    return await this.chatMessageRepository.save(message);
+    if (!conversation) {
+      // Create new conversation
+      conversation = this.conversationRepository.create({
+        senderId,
+        receiverId,
+      });
+      conversation = await this.conversationRepository.save(conversation);
+
+      // Load relations
+      conversation = await this.conversationRepository.findOne({
+        where: { id: conversation.id },
+        relations: ['sender', 'receiver'],
+      });
+    }
+
+    return conversation;
   }
 
-  async getChatMessages(
-    userId: string,
-    otherUserId?: string,
-    roomId?: string,
-  ): Promise<ChatMessage[]> {
-    const query = this.chatMessageRepository
-      .createQueryBuilder('message')
-      .leftJoinAndSelect('message.sender', 'sender')
-      .leftJoinAndSelect('message.receiver', 'receiver')
-      .where('message.senderId = :userId OR message.receiverId = :userId', {
-        userId,
+  // Get conversations list for a user
+  async getConversations(userId: string): Promise<ConversationResponseDto[]> {
+    const conversations = await this.conversationRepository
+      .createQueryBuilder('conversation')
+      .leftJoinAndSelect('conversation.sender', 'sender')
+      .leftJoinAndSelect('sender.avatar', 'senderAvatar')
+      .leftJoinAndSelect('conversation.receiver', 'receiver')
+      .leftJoinAndSelect('receiver.avatar', 'receiverAvatar')
+      .leftJoinAndSelect('conversation.messages', 'messages')
+      .leftJoinAndSelect('messages.sender', 'messageSender')
+      .where(
+        'conversation.senderId = :userId OR conversation.receiverId = :userId',
+        { userId },
+      )
+      .orderBy('conversation.createdAt', 'DESC')
+      .getMany();
+
+    const result: ConversationResponseDto[] = [];
+
+    for (const conversation of conversations) {
+      // Determine the other user (receiver from current user's perspective)
+      const otherUser =
+        conversation.senderId === userId
+          ? conversation.receiver
+          : conversation.sender;
+
+      // Get last message
+      const lastMessage =
+        conversation.messages && conversation.messages.length > 0
+          ? conversation.messages.reduce((latest, current) =>
+              new Date(current.createdAt) > new Date(latest.createdAt)
+                ? current
+                : latest,
+            )
+          : null;
+
+      // Count unread messages where current user is NOT the sender
+      const unreadCount = await this.messageRepository.count({
+        where: {
+          conversation: { id: conversation.id },
+          senderId: otherUser.id.toString(),
+          isRead: false,
+        },
       });
 
-    if (otherUserId) {
-      query.andWhere(
-        '(message.senderId = :otherUserId OR message.receiverId = :otherUserId)',
-        { otherUserId },
-      );
+      result.push({
+        id: conversation.id,
+        receiverId: otherUser.id.toString(),
+        receiver: {
+          id: otherUser.id.toString(),
+          fullName: `${otherUser.firstName} ${otherUser.lastName}`,
+          email: otherUser.email,
+          avatar: otherUser.avatar?.url || null,
+        },
+        lastMessage: lastMessage
+          ? {
+              id: lastMessage.id,
+              content: lastMessage.content,
+              createdAt: lastMessage.createdAt,
+              senderId: lastMessage.senderId,
+            }
+          : null,
+        unreadCount,
+        updatedAt: lastMessage?.createdAt || conversation.createdAt,
+      });
     }
 
-    if (roomId) {
-      query.andWhere('message.roomId = :roomId', { roomId });
-    }
-
-    return await query.orderBy('message.createdAt', 'ASC').getMany();
-  }
-
-  async markMessageAsRead(messageId: string, userId: string): Promise<void> {
-    await this.chatMessageRepository.update(
-      { id: messageId, receiverId: userId },
-      { isRead: true },
+    // Sort by last message time (most recent first)
+    return result.sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
     );
   }
 
-  async getUnreadMessageCount(userId: string): Promise<number> {
-    return await this.chatMessageRepository.count({
-      where: { receiverId: userId, isRead: false },
+  // Get messages in a conversation
+  async getMessages(
+    conversationId: string,
+    userId: string,
+    page: number = 1,
+    limit: number = 50,
+  ): Promise<{ messages: MessageResponseDto[]; total: number }> {
+    // Verify user has access to this conversation
+    const conversation = await this.conversationRepository.findOne({
+      where: {
+        id: conversationId,
+        // User must be either sender or receiver
+      },
+      relations: ['sender', 'receiver'],
     });
-  }
 
-  async getRecentChats(userId: string, limit = 10): Promise<ChatMessage[]> {
-    const query = this.chatMessageRepository
-      .createQueryBuilder('message')
-      .leftJoinAndSelect('message.sender', 'sender')
-      .leftJoinAndSelect('message.receiver', 'receiver')
-      .where('message.senderId = :userId OR message.receiverId = :userId', {
-        userId,
-      })
-      .orderBy('message.createdAt', 'DESC')
-      .limit(limit);
+    if (
+      !conversation ||
+      (conversation.senderId !== userId && conversation.receiverId !== userId)
+    ) {
+      throw new NotFoundException('Conversation not found or access denied');
+    }
 
-    return await query.getMany();
-  }
+    const [messages, total] = await this.messageRepository.findAndCount({
+      where: { conversation: { id: conversationId } },
+      relations: ['sender', 'sender.avatar'],
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
 
-  // Room Methods (for future group chat functionality)
-  async createRoom(
-    name: string,
-    participants: string[],
-  ): Promise<{ id: string; name: string }> {
-    // This is a placeholder for room creation
-    // In a real implementation, you would have a Room entity
+    const messageResponseDto: MessageResponseDto[] = messages.map(
+      (message) => ({
+        id: message.id,
+        content: message.content,
+        senderId: message.senderId,
+        isRead: message.isRead,
+        createdAt: message.createdAt,
+        sender: {
+          id: message.sender.id.toString(),
+          fullName: `${message.sender.firstName} ${message.sender.lastName}`,
+          avatar: message.sender.avatar?.url || null,
+        },
+      }),
+    );
+
     return {
-      id: `room_${Date.now()}`,
-      name,
+      messages: messageResponseDto.reverse(), // Reverse to show oldest first
+      total,
     };
   }
 
-  async getRoomParticipants(roomId: string): Promise<string[]> {
-    // This is a placeholder for getting room participants
-    // In a real implementation, you would query the Room entity
-    return [];
+  // Send a new message
+  async sendMessage(
+    senderId: string,
+    sendMessageDto: SendMessageDto,
+  ): Promise<MessageResponseDto> {
+    const { content, receiverId } = sendMessageDto;
+
+    // Find or create conversation
+    const conversation = await this.findOrCreateConversation(
+      senderId,
+      receiverId,
+    );
+
+    // Create message
+    const message = this.messageRepository.create({
+      conversation,
+      senderId,
+      content,
+      isRead: false,
+    });
+
+    const savedMessage = await this.messageRepository.save(message);
+
+    // Load sender info
+    const messageWithSender = await this.messageRepository.findOne({
+      where: { id: savedMessage.id },
+      relations: ['sender', 'sender.avatar'],
+    });
+
+    return {
+      id: messageWithSender.id,
+      content: messageWithSender.content,
+      senderId: messageWithSender.senderId,
+      isRead: messageWithSender.isRead,
+      createdAt: messageWithSender.createdAt,
+      sender: {
+        id: messageWithSender.sender.id.toString(),
+        fullName: `${messageWithSender.sender.firstName} ${messageWithSender.sender.lastName}`,
+        avatar: messageWithSender.sender.avatar?.url || null,
+      },
+    };
+  }
+
+  // Mark messages as read
+  async markAsRead(conversationId: string, userId: string): Promise<void> {
+    // Verify user has access to this conversation
+    const conversation = await this.conversationRepository.findOne({
+      where: { id: conversationId },
+    });
+
+    if (
+      !conversation ||
+      (conversation.senderId !== userId && conversation.receiverId !== userId)
+    ) {
+      throw new NotFoundException('Conversation not found or access denied');
+    }
+
+    // Mark all messages in this conversation as read where current user is NOT the sender
+    await this.messageRepository.update(
+      {
+        conversation: { id: conversationId },
+        senderId:
+          userId === conversation.senderId
+            ? conversation.receiverId
+            : conversation.senderId,
+        isRead: false,
+      },
+      { isRead: true },
+    );
   }
 }
