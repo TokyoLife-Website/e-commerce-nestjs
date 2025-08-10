@@ -4,13 +4,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { WebSocketGatewayClass } from './websocket.gateway';
-import { WebSocketController } from './websocket.controller';
-import { WebSocketService } from './websocket.service';
 import { WsJwtAuthGuard } from './guards/ws-jwt-auth.guard';
 import { AIChatMessage, AIConversation } from './entities/ai-chat.entity';
 import { UsersModule } from '../users/users.module';
 import { NotificationModule } from '../notification/notification.module';
 import { ChatModule } from '../chat/chat.module';
+import { WebSocketService } from './websocket.service';
 
 @Module({
   imports: [
@@ -28,8 +27,6 @@ import { ChatModule } from '../chat/chat.module';
     NotificationModule,
     ChatModule,
   ],
-  controllers: [WebSocketController],
-  providers: [WebSocketGatewayClass, WebSocketService, WsJwtAuthGuard],
-  exports: [WebSocketService],
+  providers: [WebSocketGatewayClass, WsJwtAuthGuard, WebSocketService],
 })
 export class WebSocketModule {}

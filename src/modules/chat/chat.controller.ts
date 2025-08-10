@@ -13,8 +13,6 @@ import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import {
   SendMessageDto,
-  GetMessagesDto,
-  MarkAsReadDto,
   ConversationResponseDto,
   MessageResponseDto,
 } from './dto/chat-message.dto';
@@ -71,6 +69,7 @@ export class ChatController {
     @Body('receiverId') receiverId: string,
     @Request() req,
   ): Promise<{ conversationId: string }> {
+    console.log({ receiverId, userId: req.user.id });
     const conversation = await this.chatService.findOrCreateConversation(
       req.user.id,
       receiverId,

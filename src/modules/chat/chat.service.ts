@@ -196,13 +196,12 @@ export class ChatService {
     senderId: string,
     sendMessageDto: SendMessageDto,
   ): Promise<MessageResponseDto> {
-    const { content, receiverId } = sendMessageDto;
+    const { content, conversationId } = sendMessageDto;
 
     // Find or create conversation
-    const conversation = await this.findOrCreateConversation(
-      senderId,
-      receiverId,
-    );
+    const conversation = await this.conversationRepository.findOne({
+      where: { id: conversationId },
+    });
 
     // Create message
     const message = this.messageRepository.create({

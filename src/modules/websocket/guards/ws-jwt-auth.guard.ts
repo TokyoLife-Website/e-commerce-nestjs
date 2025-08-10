@@ -15,7 +15,6 @@ export class WsJwtAuthGuard implements CanActivate {
     try {
       const client: Socket = context.switchToWs().getClient();
       const token = this.extractTokenFromHeader(client);
-
       if (!token) {
         throw new WsException('Unauthorized access');
       }
@@ -24,7 +23,7 @@ export class WsJwtAuthGuard implements CanActivate {
         secret: process.env.JWT_SECRET,
       });
 
-      const user = await this.usersService.findOne(payload.sub);
+      const user = await this.usersService.findOne(payload.id);
       if (!user) {
         throw new WsException('User not found');
       }

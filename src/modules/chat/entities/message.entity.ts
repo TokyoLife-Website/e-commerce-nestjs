@@ -30,9 +30,6 @@ export class Message {
   @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn()
-  updatedAt: Date;
-
   // Relations
   @ManyToOne(() => User)
   @JoinColumn({ name: 'senderId' })

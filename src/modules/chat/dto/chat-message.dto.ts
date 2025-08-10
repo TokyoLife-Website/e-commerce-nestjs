@@ -5,8 +5,8 @@ export class SendMessageDto {
   @IsString()
   content: string;
 
-  @IsNumber()
-  receiverId: string;
+  @IsString()
+  conversationId: string;
 }
 
 export class GetMessagesDto {

@@ -23,6 +23,7 @@ export class NotificationService {
     userId: string,
     notification: CreateNotificationDto,
   ): Promise<void> {
+    console.log('🔥 sendNotificationToUser', userId, notification);
     const savedNotification = await this.createNotification(notification);
 
     // Emit event để WebSocket Gateway có thể gửi real-time notification
@@ -32,33 +33,11 @@ export class NotificationService {
     } as NotificationEvent);
   }
 
-  async sendNotificationToUserWithSocketId(
-    userId: string,
-    notification: CreateNotificationDto,
-    socketId: string,
-  ): Promise<void> {
-    const savedNotification = await this.createNotification(notification);
-
-    // Emit event với socketId cụ thể
-    this.eventEmitter.emit('notification.created', {
-      userId,
-      notification: savedNotification,
-      socketId,
-    } as NotificationEvent);
-  }
-
   async getNotifications(userId: string, limit = 50): Promise<Notification[]> {
     return await this.notificationRepository.find({
       where: { userId },
       order: { createdAt: 'DESC' },
       take: limit,
-    });
-  }
-
-  async getUnreadNotifications(userId: string): Promise<Notification[]> {
-    return await this.notificationRepository.find({
-      where: { userId, isRead: false },
-      order: { createdAt: 'DESC' },
     });
   }
 
@@ -71,23 +50,5 @@ export class NotificationService {
 
   async markAllNotificationsAsRead(userId: string): Promise<void> {
     await this.notificationRepository.update({ userId }, { isRead: true });
-  }
-
-  async deleteNotification(notificationId: string): Promise<void> {
-    await this.notificationRepository.delete({ id: notificationId });
-  }
-
-  async getNotificationCount(userId: string): Promise<number> {
-    return await this.notificationRepository.count({
-      where: { userId, isRead: false },
-    });
-  }
-
-  async getNotificationById(
-    notificationId: string,
-  ): Promise<Notification | null> {
-    return await this.notificationRepository.findOne({
-      where: { id: notificationId },
-    });
   }
 }
