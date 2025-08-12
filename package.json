@@ -51,6 +51,7 @@
     "cloudinary": "^2.5.1",
     "dayjs": "^1.11.13",
     "exceljs": "^4.4.0",
+    "franc": "^6.2.0",
     "ioredis": "^5.4.1",
     "mailgen": "^2.0.28",
     "mysql2": "^3.11.5",

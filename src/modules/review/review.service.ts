@@ -24,6 +24,8 @@ import {
   ReviewItemTransformer,
 } from './transformers/review-item.transformers';
 import { ReviewStatus } from 'src/common/enum/reviewStatus.enum';
+import { PerspectiveService } from '../perspective/perspective.service';
+import { franc } from 'franc';
 
 @Injectable()
 export class ReviewService {
@@ -36,6 +38,7 @@ export class ReviewService {
     private orderItemRepository: Repository<OrderItem>,
     private userService: UsersService,
     private productService: ProductsService,
+    private perspectiveService: PerspectiveService,
   ) {}
 
   async create(
@@ -68,7 +71,7 @@ export class ReviewService {
     if (existingReview || orderItem.isReviewed)
       throw new BadRequestException('You have already reviewed this item');
 
-    const user = await this.userService.findOne(userId);
+    await this.userService.findOne(userId);
     const sku = await this.productSkuRepository.findOneBy({
       id: orderItem.sku.id,
     });
@@ -76,6 +79,19 @@ export class ReviewService {
       throw new NotFoundException(
         `Product SKU with id ${orderItem.sku.id} not found!`,
       );
+    }
+    const lang = franc(comment, {
+      only: ['eng', 'vie'],
+      minLength: 3,
+    });
+    if (lang !== 'vie') {
+      const toxicityScore =
+        await this.perspectiveService.analyzeComment(comment);
+      if (toxicityScore > 0.5) {
+        throw new BadRequestException(
+          'Your comment is not allowed, please try again!',
+        );
+      }
     }
 
     const review = this.reviewRepository.create({

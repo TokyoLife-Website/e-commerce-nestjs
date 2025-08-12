@@ -5,7 +5,6 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class PerspectiveService {
-  private readonly logger = new Logger(PerspectiveService.name);
   private readonly apiKey: string;
   private readonly apiUrl =
     'https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze';
@@ -25,7 +24,6 @@ export class PerspectiveService {
       const url = `${this.apiUrl}?key=${this.apiKey}`;
       const body = {
         comment: { text },
-        // languages: ['en', 'vi'],
         requestedAttributes: { TOXICITY: {} },
       };
 

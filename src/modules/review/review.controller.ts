@@ -19,7 +19,7 @@ export class ReviewController {
   constructor(private readonly reviewService: ReviewService) {}
 
   @Post()
-  @Roles(Role.Admin)
+  @Roles(Role.User)
   @UseGuards(RolesGuard)
   create(@UserParams() user: User, @Body() createReviewDto: CreateReviewDto) {
     return this.reviewService.create(user.id, createReviewDto);
