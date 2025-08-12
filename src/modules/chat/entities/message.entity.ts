@@ -27,7 +27,7 @@ export class Message {
   @Column({ type: 'boolean', default: false })
   isRead: boolean;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
   // Relations

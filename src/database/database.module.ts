@@ -19,6 +19,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         entities: [__dirname + '/../**/*.entity{.ts,.js}'],
         migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
         synchronize: true,
+        timezone: 'Z',
       }),
       inject: [ConfigService],
     }),
