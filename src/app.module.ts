@@ -34,6 +34,7 @@ import { WebSocketModule } from './modules/websocket/websocket.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { DeepseekModule } from './modules/deepseek/deepseek.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     WebSocketModule,
     NotificationModule,
     ChatModule,
+    DeepseekModule,
   ],
   controllers: [AppController],
   providers: [

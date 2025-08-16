@@ -56,6 +56,7 @@
     "mailgen": "^2.0.28",
     "mysql2": "^3.11.5",
     "nestjs-console": "^9.0.0",
+    "openai": "^5.12.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.0",
