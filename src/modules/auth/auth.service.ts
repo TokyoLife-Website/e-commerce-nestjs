@@ -8,12 +8,12 @@ import {
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import * as jwt from 'jsonwebtoken';
 import { ConfigService } from '@nestjs/config';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { User } from '../users/entities/user.entity';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { randomBytes } from 'crypto';
 import { RedisService } from '../redis/redis.service';
 import { queueName } from 'src/common/constants/queueName';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -24,6 +24,8 @@ import { Blacklist } from './entities/blacklist.entity';
 import { LessThanOrEqual, Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { VerifyOTPDto } from './dto/verify-otp.dto';
+import { Role } from 'src/common/enum/role.enum';
+import { CookieOptions } from 'express-serve-static-core';
 
 @Injectable()
 export class AuthService {
@@ -38,6 +40,21 @@ export class AuthService {
     private blacklistRepository: Repository<Blacklist>,
   ) {}
 
+  getCookieOptions(token?: string): CookieOptions {
+    const decodedToken = token
+      ? (jwt.decode(token) as jwt.JwtPayload)
+      : undefined;
+    return {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: decodedToken
+        ? ((decodedToken.exp ?? 0) - (decodedToken.iat ?? 0)) * 1000
+        : undefined,
+    };
+  }
+
   async validateUser(email: string, password: string): Promise<User> {
     const user: User = await this.usersService.findOneByEmail(email);
     if (!user) throw new UnauthorizedException('Invalid credentials');
@@ -51,12 +68,13 @@ export class AuthService {
     refreshToken?: string,
     refreshTokenExpiresAt?: Date,
   ): Promise<LoginResponseDto> {
-    const { id, email } = user;
+    const { id, email, role } = user;
     return {
-      access_token: this.jwtService.sign({ id, email }),
+      access_token: this.jwtService.sign({ id, email, role }),
       refresh_token: await this.generateRefreshToken(
         id,
         email,
+        role,
         refreshToken,
         refreshTokenExpiresAt,
       ),
@@ -66,6 +84,7 @@ export class AuthService {
   async generateRefreshToken(
     id: number,
     email: string,
+    role: Role,
     refreshToken?: string,
     refreshTokenExpiresAt?: Date,
   ) {
@@ -73,6 +92,7 @@ export class AuthService {
       {
         email,
         id,
+        role,
       },
       {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),

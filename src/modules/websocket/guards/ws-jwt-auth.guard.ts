@@ -2,6 +2,7 @@ import { CanActivate, Injectable } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
+import * as cookie from 'cookie';
 import { UsersService } from '../../users/users.service';
 
 @Injectable()
@@ -14,7 +15,7 @@ export class WsJwtAuthGuard implements CanActivate {
   async canActivate(context: any): Promise<boolean> {
     try {
       const client: Socket = context.switchToWs().getClient();
-      const token = this.extractTokenFromHeader(client);
+      const token = this.extractTokenFromCookie(client);
       if (!token) {
         throw new WsException('Unauthorized access');
       }
@@ -42,14 +43,11 @@ export class WsJwtAuthGuard implements CanActivate {
     }
   }
 
-  private extractTokenFromHeader(client: Socket): string | undefined {
-    const auth =
-      client.handshake.auth.token || client.handshake.headers.authorization;
-    if (!auth) {
-      return undefined;
-    }
+  private extractTokenFromCookie(client: Socket): string | undefined {
+    const cookies = client.handshake.headers.cookie;
+    if (!cookies) return undefined;
+    const parsedCookies = cookie.parse(cookies);
 
-    const [type, token] = auth.split(' ') ?? [];
-    return type === 'Bearer' ? token : auth;
+    return parsedCookies['access_token'];
   }
 }

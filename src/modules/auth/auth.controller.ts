@@ -4,9 +4,10 @@ import {
   InternalServerErrorException,
   Post,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { Public } from 'src/common/decorators/public.decorator';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
 import { JwtRefreshAuthGuard } from 'src/common/guards/jwt-refresh-auth.guard';
@@ -27,12 +28,29 @@ export class AuthController {
 
   @Post('login')
   @ResponseMessage('Login successfully!')
-  async login(@Body() loginBody: LoginDto): Promise<LoginResponseDto> {
+  async login(
+    @Body() loginBody: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<User> {
     const user: User = await this.authService.validateUser(
       loginBody.email,
       loginBody.password,
     );
-    return this.authService.generateTokenPair(user);
+    const tokens = await this.authService.generateTokenPair(user);
+
+    res.cookie(
+      'access_token',
+      tokens.access_token,
+      this.authService.getCookieOptions(tokens.access_token),
+    );
+
+    res.cookie(
+      'refresh_token',
+      tokens.refresh_token,
+      this.authService.getCookieOptions(tokens.refresh_token),
+    );
+
+    return user;
   }
 
   @Post('register')
@@ -43,26 +61,61 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(JwtRefreshAuthGuard)
-  async logout(@Req() req: Request) {
+  async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ message: string }> {
     const { attributes, refreshTokenExpiresAt } = req.user as DecodedTokenDto;
-    await this.authService.logout(
-      attributes.id,
-      req.body.refreshToken,
-      refreshTokenExpiresAt,
-    );
+    const refreshToken = req.cookies?.refresh_token;
+
+    if (refreshToken) {
+      await this.authService.logout(
+        attributes.id,
+        refreshToken,
+        refreshTokenExpiresAt,
+      );
+    }
+
+    res.clearCookie('access_token', this.authService.getCookieOptions());
+    res.clearCookie('refresh_token', this.authService.getCookieOptions());
+
+    return { message: 'Logout successfully!' };
   }
 
   @Post('refresh-token')
   @UseGuards(JwtRefreshAuthGuard)
-  async refreshToken(@Req() req: Request) {
+  async refreshToken(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ message: string }> {
     if (!req.user) {
       throw new InternalServerErrorException();
     }
-    return this.authService.generateTokenPair(
+
+    const refreshToken = req.cookies?.refresh_token;
+    if (!refreshToken) {
+      throw new InternalServerErrorException('Refresh token not found');
+    }
+
+    const tokens = await this.authService.generateTokenPair(
       (req.user as any).attributes,
-      req.body.refreshToken,
+      refreshToken,
       (req.user as any).refreshTokenExpiresAt,
     );
+
+    res.cookie(
+      'access_token',
+      tokens.access_token,
+      this.authService.getCookieOptions(tokens.access_token),
+    );
+
+    res.cookie(
+      'refresh_token',
+      tokens.refresh_token,
+      this.authService.getCookieOptions(tokens.refresh_token),
+    );
+
+    return { message: 'Token refreshed successfully!' };
   }
 
   @Post('forgot-password')

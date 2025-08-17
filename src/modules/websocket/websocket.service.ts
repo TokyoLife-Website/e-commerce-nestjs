@@ -5,6 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { AIChatMessage, AIConversation } from './entities/ai-chat.entity';
 import { SocketUser } from './interfaces/socket.interface';
+import * as cookie from 'cookie';
 
 @Injectable()
 export class WebSocketService {
@@ -15,7 +16,7 @@ export class WebSocketService {
 
   async authenticateUser(client: Socket): Promise<SocketUser | null> {
     try {
-      const token = this.extractTokenFromHeader(client);
+      const token = this.extractTokenFromCookie(client);
       if (!token) {
         return null;
       }
@@ -40,14 +41,11 @@ export class WebSocketService {
     }
   }
 
-  private extractTokenFromHeader(client: Socket): string | undefined {
-    const auth =
-      client.handshake.auth.token || client.handshake.headers.authorization;
-    if (!auth) {
-      return undefined;
-    }
+  private extractTokenFromCookie(client: Socket): string | undefined {
+    const cookies = client.handshake.headers.cookie;
+    if (!cookies) return undefined;
+    const parsedCookies = cookie.parse(cookies);
 
-    const [type, token] = auth.split(' ') ?? [];
-    return type === 'Bearer' ? token : auth;
+    return parsedCookies['access_token'];
   }
 }

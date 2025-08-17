@@ -45,7 +45,10 @@ export class UsersService {
   }
 
   async findOneByEmail(email: string): Promise<User> {
-    return await this.userRepository.findOneBy({ email });
+    return await this.userRepository.findOne({
+      where: { email },
+      relations: ['avatar'],
+    });
   }
 
   async uploadAvatar(userId: number, file: Express.Multer.File) {
