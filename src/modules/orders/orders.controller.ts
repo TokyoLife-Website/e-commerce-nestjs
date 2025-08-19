@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -18,6 +19,9 @@ import {
   Pagination,
   PaginationParams,
 } from 'src/common/decorators/pagination-params.decorator';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { Role } from 'src/common/enum/role.enum';
+import { Roles } from 'src/common/decorators/roles.decorator';
 
 @Controller('orders')
 export class OrdersController {
@@ -29,6 +33,8 @@ export class OrdersController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @Roles(Role.User)
   findAll(
     @FilterParams(['status'])
     filters: { status: OrderStatus },

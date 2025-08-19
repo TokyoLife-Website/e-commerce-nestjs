@@ -4,6 +4,7 @@ import { Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import * as cookie from 'cookie';
 import { UsersService } from '../../users/users.service';
+import { COOKIE_NAME } from 'src/common/constants/cookieName';
 
 @Injectable()
 export class WsJwtAuthGuard implements CanActivate {
@@ -48,6 +49,6 @@ export class WsJwtAuthGuard implements CanActivate {
     if (!cookies) return undefined;
     const parsedCookies = cookie.parse(cookies);
 
-    return parsedCookies['access_token'];
+    return parsedCookies[COOKIE_NAME.ACCESS_TOKEN];
   }
 }

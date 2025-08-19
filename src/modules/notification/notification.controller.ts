@@ -12,9 +12,12 @@ import {
 import { NotificationService } from './notification.service';
 import { CreateNotificationDto } from './dto/notification.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Role } from 'src/common/enum/role.enum';
+import { Roles } from 'src/common/decorators/roles.decorator';
 
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
+@Roles(Role.Admin)
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 

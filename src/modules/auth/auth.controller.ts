@@ -20,6 +20,7 @@ import { LoginResponseDto } from './dto/login-response.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyOTPDto } from './dto/verify-otp.dto';
+import { COOKIE_NAME } from 'src/common/constants/cookieName';
 
 @Public()
 @Controller('auth')
@@ -39,13 +40,13 @@ export class AuthController {
     const tokens = await this.authService.generateTokenPair(user);
 
     res.cookie(
-      'access_token',
+      COOKIE_NAME.ACCESS_TOKEN,
       tokens.access_token,
       this.authService.getCookieOptions(tokens.access_token),
     );
 
     res.cookie(
-      'refresh_token',
+      COOKIE_NAME.REFRESH_TOKEN,
       tokens.refresh_token,
       this.authService.getCookieOptions(tokens.refresh_token),
     );
@@ -76,8 +77,14 @@ export class AuthController {
       );
     }
 
-    res.clearCookie('access_token', this.authService.getCookieOptions());
-    res.clearCookie('refresh_token', this.authService.getCookieOptions());
+    res.clearCookie(
+      COOKIE_NAME.ACCESS_TOKEN,
+      this.authService.getCookieOptions(),
+    );
+    res.clearCookie(
+      COOKIE_NAME.REFRESH_TOKEN,
+      this.authService.getCookieOptions(),
+    );
 
     return { message: 'Logout successfully!' };
   }
@@ -104,13 +111,13 @@ export class AuthController {
     );
 
     res.cookie(
-      'access_token',
+      COOKIE_NAME.ACCESS_TOKEN,
       tokens.access_token,
       this.authService.getCookieOptions(tokens.access_token),
     );
 
     res.cookie(
-      'refresh_token',
+      COOKIE_NAME.REFRESH_TOKEN,
       tokens.refresh_token,
       this.authService.getCookieOptions(tokens.refresh_token),
     );

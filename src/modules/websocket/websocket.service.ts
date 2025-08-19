@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
-import { AIChatMessage, AIConversation } from './entities/ai-chat.entity';
 import { SocketUser } from './interfaces/socket.interface';
 import * as cookie from 'cookie';
+import { COOKIE_NAME } from 'src/common/constants/cookieName';
 
 @Injectable()
 export class WebSocketService {
@@ -46,6 +45,6 @@ export class WebSocketService {
     if (!cookies) return undefined;
     const parsedCookies = cookie.parse(cookies);
 
-    return parsedCookies['access_token'];
+    return parsedCookies[COOKIE_NAME.ACCESS_TOKEN];
   }
 }
