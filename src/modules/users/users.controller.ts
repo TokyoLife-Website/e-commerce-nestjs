@@ -9,6 +9,7 @@ import {
   Post,
   UseInterceptors,
   UploadedFile,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -18,6 +19,14 @@ import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UserParams } from 'src/common/decorators/user.decorator';
 import { User } from './entities/user.entity';
 import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  Pagination,
+  PaginationParams,
+} from 'src/common/decorators/pagination-params.decorator';
+import { Public } from 'src/common/decorators/public.decorator';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { RolesGuard } from 'src/common/guards/role.guard';
+import { Role } from 'src/common/enum/role.enum';
 
 @Controller('users')
 export class UsersController {
@@ -53,9 +62,25 @@ export class UsersController {
     return this.usersService.findOne(user.id);
   }
 
+  @Get()
+  @Public()
+  findAll(@PaginationParams() pagination: Pagination) {
+    return this.usersService.findAll(pagination);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(+id);
+  }
+
+  @Patch(':id/status')
+  @Roles(Role.Admin)
+  @UseGuards(RolesGuard)
+  updateStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { isActive: boolean },
+  ) {
+    return this.usersService.updateStatus(id, body.isActive);
   }
 
   @Patch()

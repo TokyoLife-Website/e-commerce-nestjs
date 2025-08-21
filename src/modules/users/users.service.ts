@@ -12,6 +12,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UploadService } from '../upload/upload.service';
+import { Pagination as PaginationParamsType } from 'src/common/decorators/pagination-params.decorator';
+import { PaginationResource } from 'src/common/types/pagination-response.dto';
 
 @Injectable()
 export class UsersService {
@@ -29,8 +31,29 @@ export class UsersService {
     return await this.userRepository.save(newUser);
   }
 
-  findAll() {
-    return `This action returns all users`;
+  async findAll(
+    pagination: PaginationParamsType,
+  ): Promise<PaginationResource<User>> {
+    const { limit, offset, page, size } = pagination;
+    const [items, totalItems] = await this.userRepository.findAndCount({
+      relations: ['avatar'],
+      order: { createdAt: 'DESC' },
+      take: limit,
+      skip: offset,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        gender: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+    const totalPages = Math.ceil(totalItems / size);
+    return { items, page, size, totalItems, totalPages };
   }
 
   async findOne(id: number): Promise<User> {
@@ -91,6 +114,12 @@ export class UsersService {
     const hashedPassword = await bcrypt.hash(newPassword, salt);
     user.password = hashedPassword;
     await this.userRepository.save(user);
+  }
+
+  async updateStatus(id: number, isActive: boolean) {
+    const user = await this.findOne(id);
+    user.isActive = isActive;
+    return await this.userRepository.save(user);
   }
 
   async save(user: User): Promise<User> {

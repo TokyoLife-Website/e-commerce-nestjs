@@ -58,6 +58,10 @@ export class AuthService {
   async validateUser(email: string, password: string): Promise<User> {
     const user: User = await this.usersService.findOneByEmail(email);
     if (!user) throw new UnauthorizedException('Invalid credentials');
+    if (!user.isActive)
+      throw new UnauthorizedException(
+        'Account is deactivated. Please contact administrator.',
+      );
     const isMatch: boolean = await bcrypt.compare(password, user.password);
     if (!isMatch) throw new UnauthorizedException('Invalid credentials');
     return user;

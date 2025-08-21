@@ -6,6 +6,7 @@ import {
   Req,
   Res,
   UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { Public } from 'src/common/decorators/public.decorator';
@@ -16,11 +17,11 @@ import { User } from '../users/entities/user.entity';
 import { AuthService } from './auth.service';
 import { DecodedTokenDto } from './dto/decoded-token.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { LoginResponseDto } from './dto/login-response.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyOTPDto } from './dto/verify-otp.dto';
 import { COOKIE_NAME } from 'src/common/constants/cookieName';
+import { Role } from 'src/common/enum/role.enum';
 
 @Public()
 @Controller('auth')
@@ -33,10 +34,43 @@ export class AuthController {
     @Body() loginBody: LoginDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<User> {
+    return this.handleLogin(
+      loginBody,
+      res,
+      Role.User,
+      'User privileges required.',
+    );
+  }
+
+  @Post('admin/login')
+  @ResponseMessage('Admin login successfully!')
+  async adminLogin(
+    @Body() loginBody: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<User> {
+    return this.handleLogin(
+      loginBody,
+      res,
+      Role.Admin,
+      'Admin privileges required.',
+    );
+  }
+
+  private async handleLogin(
+    loginBody: LoginDto,
+    res: Response,
+    requiredRole: Role,
+    errorMessage: string,
+  ): Promise<User> {
     const user: User = await this.authService.validateUser(
       loginBody.email,
       loginBody.password,
     );
+
+    if (user.role !== requiredRole) {
+      throw new UnauthorizedException(`Access denied. ${errorMessage}`);
+    }
+
     const tokens = await this.authService.generateTokenPair(user);
 
     res.cookie(
