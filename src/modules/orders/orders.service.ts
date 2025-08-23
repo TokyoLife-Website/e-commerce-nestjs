@@ -96,7 +96,7 @@ export class OrdersService {
     const validTransitions: Record<OrderStatus, OrderStatus[]> = {
       [OrderStatus.PENDING]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
       [OrderStatus.PROCESSING]: [OrderStatus.DELIVERING, OrderStatus.CANCELLED],
-      [OrderStatus.DELIVERING]: [OrderStatus.DELIVERED, OrderStatus.RETURNED],
+      [OrderStatus.DELIVERING]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
       [OrderStatus.DELIVERED]: [OrderStatus.RETURNED],
       [OrderStatus.RETURNED]: [],
       [OrderStatus.CANCELLED]: [],
@@ -224,6 +224,21 @@ export class OrdersService {
       savedOrder.shippingFee = shippingFee;
       savedOrder.finalAmount = finalAmount;
       savedOrder.items = orderItems;
+      const statusHistory = [
+        queryRunner.manager.create('OrderStatusHistory', {
+          orderId: savedOrder.id,
+          status: OrderStatus.PENDING,
+        }),
+      ];
+      if (paymentMethod === PaymentMethod.COD) {
+        statusHistory.push(
+          queryRunner.manager.create('OrderStatusHistory', {
+            orderId: savedOrder.id,
+            status: savedOrder.status,
+          }),
+        );
+      }
+      await queryRunner.manager.save(statusHistory);
       await queryRunner.manager.save(savedOrder);
       await this.cartService.clearCart(user.id);
       await queryRunner.commitTransaction();
@@ -310,16 +325,27 @@ export class OrdersService {
       where: { code },
       relations: [
         'user',
+        'user.avatar',
         'address',
         'address.province',
         'address.district',
         'address.ward',
         'items.sku.product',
+        'orderStatusHistory',
       ],
     });
     if (!order) {
       throw new NotFoundException(`Order with id ${code} not found`);
     }
+
+    // Sort orderStatusHistory by createdAt if it exists
+    if (order.orderStatusHistory) {
+      order.orderStatusHistory.sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+    }
+
     return order;
   }
 
@@ -358,6 +384,14 @@ export class OrdersService {
       }
       order.status = newStatus;
       const updatedOrder = await queryRunner.manager.save(order);
+
+      // Create status history record
+      const statusHistory = queryRunner.manager.create('OrderStatusHistory', {
+        orderId: order.id,
+        status: newStatus,
+      });
+      await queryRunner.manager.save(statusHistory);
+
       await queryRunner.commitTransaction();
       return updatedOrder;
     } catch (error) {

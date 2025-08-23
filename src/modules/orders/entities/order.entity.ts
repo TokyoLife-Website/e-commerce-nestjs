@@ -14,6 +14,7 @@ import {
 } from 'typeorm';
 import { OrderItem } from './order-item.entity';
 import { Coupon } from 'src/modules/coupon/entities/coupon.entity';
+import { OrderStatusHistory } from './order-status-history.entity';
 
 @Entity()
 export class Order {
@@ -62,6 +63,11 @@ export class Order {
     eager: true,
   })
   items: OrderItem[];
+
+  @OneToMany(() => OrderStatusHistory, (history) => history.order, {
+    cascade: true,
+  })
+  orderStatusHistory: OrderStatusHistory[];
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
