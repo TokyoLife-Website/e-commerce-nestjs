@@ -274,6 +274,37 @@ export class OrdersService {
     };
   }
 
+  async findAllForAdmin(
+    filters: { status: OrderStatus; userId: number },
+    { limit, offset, page, size }: Pagination,
+  ): Promise<PaginationResource<Partial<Order>>> {
+    const where: any = {};
+    if (filters.status) {
+      where.status = filters.status;
+    }
+    if (filters.userId) {
+      where.userId = filters.userId;
+    }
+
+    const [orders, total] = await this.orderRepository.findAndCount({
+      relations: ['user', 'address', 'items.sku.product', 'user.avatar'],
+      order: {
+        createdAt: 'DESC',
+      },
+      where,
+      take: limit,
+      skip: offset,
+    });
+
+    return {
+      items: orders,
+      page,
+      size,
+      totalItems: total,
+      totalPages: Math.ceil(total / size),
+    };
+  }
+
   async findOne(code: string): Promise<Order> {
     const order = await this.orderRepository.findOne({
       where: { code },

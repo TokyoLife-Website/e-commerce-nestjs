@@ -44,12 +44,25 @@ export class OrdersController {
     return this.ordersService.findAll(user.id, filters, paginationParams);
   }
 
+  @Get('admin/all')
+  @UseGuards(JwtAuthGuard)
+  @Roles(Role.Admin)
+  findAllForAdmin(
+    @FilterParams(['status', 'userId'])
+    filters: { status: OrderStatus; userId: number },
+    @PaginationParams() paginationParams: Pagination,
+  ) {
+    return this.ordersService.findAllForAdmin(filters, paginationParams);
+  }
+
   @Get(':code')
   findOne(@Param('code') code: string) {
     return this.ordersService.findOne(code);
   }
 
   @Patch(':code')
+  @UseGuards(JwtAuthGuard)
+  @Roles(Role.Admin)
   update(
     @Param('code') code: string,
     @Body() body: { newStatus: OrderStatus },
