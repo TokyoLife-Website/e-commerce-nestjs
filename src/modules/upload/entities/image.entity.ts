@@ -8,7 +8,7 @@ import {
 @Entity()
 export class Image {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id: string;
 
   @Column({ length: 255, unique: true })
   public_id: string;

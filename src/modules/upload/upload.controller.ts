@@ -29,7 +29,7 @@ export class UploadController {
   }
 
   @Delete(':id')
-  async deleteImage(@Param('id') id: number) {
+  async deleteImage(@Param('id') id: string) {
     return this.uploadService.deleteImage(id);
   }
 }

@@ -1,5 +1,4 @@
 import { OrderItem } from 'src/modules/orders/entities/order-item.entity';
-import { Order } from 'src/modules/orders/entities/order.entity';
 import { ProductSku } from 'src/modules/products/entities/product-sku.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import {
@@ -22,6 +21,9 @@ export class Review {
   user: User;
 
   @Column()
+  userId: number;
+
+  @Column()
   orderItemId: number;
 
   @ManyToOne(() => OrderItem, (item) => item.reviews, {
@@ -31,14 +33,11 @@ export class Review {
   @JoinColumn({ name: 'orderItemId' })
   orderItem: OrderItem;
 
-  @Column()
-  userId: number;
-
   @ManyToOne(() => ProductSku, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'skuId' })
   sku: ProductSku;
 
-  @Column({ nullable: true })
+  @Column()
   skuId: number;
 
   @Column({ type: 'int', default: 5 })

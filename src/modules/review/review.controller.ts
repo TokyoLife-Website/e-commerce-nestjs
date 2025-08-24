@@ -1,6 +1,17 @@
-import { Controller, Get, Post, Body, UseGuards, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Query,
+  Patch,
+  Param,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { ReviewService } from './review.service';
 import { CreateReviewDto } from './dto/create-review.dto';
+import { UpdateReviewStatusDto } from './dto/update-review-status.dto';
 import { User } from '../users/entities/user.entity';
 import { UserParams } from 'src/common/decorators/user.decorator';
 import { Roles } from 'src/common/decorators/roles.decorator';
@@ -35,6 +46,17 @@ export class ReviewController {
     return this.reviewService.findAll(filters, paginationParams);
   }
 
+  @Get('admin')
+  @Roles(Role.Admin)
+  @UseGuards(RolesGuard)
+  getAllReviewsForAdmin(
+    @FilterParams(['rating', 'isActive'])
+    filters: { rating?: string; isActive?: boolean },
+    @PaginationParams() paginationParams: Pagination,
+  ) {
+    return this.reviewService.getAllReviewsForAdmin(filters, paginationParams);
+  }
+
   @Get('products')
   async getProductsByReviewStatus(
     @FilterParams(['status'])
@@ -46,6 +68,19 @@ export class ReviewController {
       user.id,
       filters,
       paginationParams,
+    );
+  }
+
+  @Patch(':id/status')
+  @Roles(Role.Admin)
+  @UseGuards(RolesGuard)
+  updateReviewStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateReviewStatusDto: UpdateReviewStatusDto,
+  ) {
+    return this.reviewService.updateReviewStatus(
+      id,
+      updateReviewStatusDto.isActive,
     );
   }
 }

@@ -8,6 +8,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { Product } from './product.entity';
 import { Review } from 'src/modules/review/entities/review.entity';
@@ -22,6 +23,7 @@ export class ProductSku {
     onDelete: 'CASCADE',
     eager: true,
   })
+  @JoinColumn({ name: 'productId' })
   product: Product;
 
   @Column()

@@ -97,7 +97,7 @@ export class ReviewService {
     const review = this.reviewRepository.create({
       userId,
       orderItemId,
-      sku: orderItem.sku,
+      skuId: orderItem.sku.id,
       rating,
       comment,
     });
@@ -113,7 +113,7 @@ export class ReviewService {
     filters: { productId: string; rating?: string },
     { limit, offset, page, size }: Pagination,
   ): Promise<PaginationResource<Partial<Review>>> {
-    const where: any = {};
+    const where: any = { isActive: true };
     if (!filters.productId) {
       throw new BadRequestException('product Id is required');
     }
@@ -132,7 +132,7 @@ export class ReviewService {
       where,
       take: limit,
       skip: offset,
-      relations: ['user', 'sku'],
+      relations: ['user', 'sku', 'sku.product'],
     });
     return {
       items: reviews,
@@ -200,5 +200,60 @@ export class ReviewService {
         totalPages: Math.ceil(total / size),
       };
     }
+  }
+
+  async getAllReviewsForAdmin(
+    filters: { rating?: string; isActive?: boolean | string },
+    { limit, offset, page, size }: Pagination,
+  ): Promise<PaginationResource<Partial<Review>>> {
+    const where: any = {};
+
+    if (filters.rating) {
+      const starNumber = parseInt(filters.rating);
+      if (isNaN(starNumber) || starNumber < 1 || starNumber > 5) {
+        throw new BadRequestException(
+          'Rating must be a number between 1 and 5',
+        );
+      }
+      where.rating = filters.rating;
+    }
+
+    if (filters.isActive !== undefined) {
+      where.isActive = filters.isActive === 'true' || filters.isActive === true;
+    }
+
+    const [reviews, total] = await this.reviewRepository.findAndCount({
+      order: {
+        createdAt: 'DESC',
+      },
+      where,
+      take: limit,
+      skip: offset,
+      relations: ['user', 'user.avatar', 'sku', 'sku.product'],
+    });
+
+    return {
+      items: reviews,
+      page,
+      size,
+      totalItems: total,
+      totalPages: Math.ceil(total / size),
+    };
+  }
+
+  async updateReviewStatus(
+    reviewId: number,
+    isActive: boolean,
+  ): Promise<Review> {
+    const review = await this.reviewRepository.findOne({
+      where: { id: reviewId },
+    });
+
+    if (!review) {
+      throw new NotFoundException(`Review with id ${reviewId} not found`);
+    }
+
+    review.isActive = isActive;
+    return await this.reviewRepository.save(review);
   }
 }

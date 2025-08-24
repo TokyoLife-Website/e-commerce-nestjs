@@ -44,7 +44,7 @@ export class UploadService {
     return await Promise.all(files.map((file) => this.uploadSingleImage(file)));
   }
 
-  async deleteImage(id: number) {
+  async deleteImage(id: string) {
     const image = await this.imageRepository.findOneBy({ id });
     if (!image) throw new NotFoundException('Image not found!');
     const result = await cloudinary.uploader.destroy(image.public_id);
