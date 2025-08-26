@@ -43,8 +43,8 @@ export class CouponService {
     return await this.couponRepository.save(coupon);
   }
 
-  findAll() {
-    return `This action returns all coupon`;
+  async findAll(): Promise<Coupon[]> {
+    return this.couponRepository.find({ order: { createdAt: 'DESC' } });
   }
 
   async findOne(code: string): Promise<Coupon> {
@@ -53,11 +53,27 @@ export class CouponService {
     return coupon;
   }
 
-  update(id: number, updateCouponDto: UpdateCouponDto) {
-    return `This action updates a #${id} coupon`;
+  async update(id: number, updateCouponDto: UpdateCouponDto): Promise<Coupon> {
+    const coupon = await this.couponRepository.findOne({ where: { id } });
+    if (!coupon) throw new NotFoundException(`Coupon #${id} not found`);
+
+    // Update only the status field
+    if (updateCouponDto.status !== undefined) {
+      coupon.status = updateCouponDto.status;
+    }
+
+    return await this.couponRepository.save(coupon);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} coupon`;
+  async remove(id: number): Promise<void> {
+    const coupon = await this.couponRepository.findOne({ where: { id } });
+    if (!coupon) throw new NotFoundException(`Coupon #${id} not found`);
+
+    // Check if coupon has been used
+    if (coupon.usedCount > 0) {
+      throw new BadRequestException('Cannot delete coupon that has been used');
+    }
+
+    await this.couponRepository.remove(coupon);
   }
 }
