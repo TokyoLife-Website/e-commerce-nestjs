@@ -35,6 +35,7 @@ import { NotificationModule } from './modules/notification/notification.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { DeepseekModule } from './modules/deepseek/deepseek.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { DeepseekModule } from './modules/deepseek/deepseek.module';
     NotificationModule,
     ChatModule,
     DeepseekModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [

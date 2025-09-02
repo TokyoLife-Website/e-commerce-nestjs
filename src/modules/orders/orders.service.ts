@@ -357,7 +357,7 @@ export class OrdersService {
   async updateStatus(code: string, newStatus: OrderStatus): Promise<Order> {
     const order = await this.orderRepository.findOne({
       where: { code },
-      relations: ['coupon'],
+      relations: ['coupon', 'items', 'items.sku', 'items.sku.product'],
     });
 
     if (!order) {
@@ -382,6 +382,33 @@ export class OrdersService {
         order.coupon.usedCount = Math.max(0, order.coupon.usedCount - 1);
         await queryRunner.manager.save(order.coupon);
       }
+      if (
+        newStatus === OrderStatus.RETURNED ||
+        newStatus === OrderStatus.CANCELLED
+      ) {
+        // When order is returned, restore stock and reduce soldCount
+        for (const item of order.items) {
+          const sku = await queryRunner.manager.findOne(ProductSku, {
+            where: { id: item.sku.id },
+            relations: ['product'],
+            lock: { mode: 'pessimistic_write' },
+          });
+
+          if (sku) {
+            // Restore SKU quantity
+            sku.quantity += item.quantity;
+            // Reduce product soldCount and restore stock
+            sku.product.soldCount = Math.max(
+              0,
+              sku.product.soldCount - item.quantity,
+            );
+            sku.product.stock += item.quantity;
+            await queryRunner.manager.save(sku.product);
+            await queryRunner.manager.save(sku);
+          }
+        }
+      }
+
       order.status = newStatus;
       const updatedOrder = await queryRunner.manager.save(order);
 

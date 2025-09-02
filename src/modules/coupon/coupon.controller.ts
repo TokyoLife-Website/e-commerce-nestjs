@@ -28,6 +28,7 @@ export class CouponController {
   }
 
   @Get()
+  @Public()
   findAll() {
     return this.couponService.findAll();
   }
