@@ -48,7 +48,7 @@ export class DeepseekService {
   async chatCompletion(messages: string): Promise<DeepSeekResponse> {
     try {
       //   const knowledge = await this.searchKnowledge(messages);
-      const model = 'deepseek/deepseek-r1-0528:free';
+      const model = 'deepseek/deepseek-chat-v3.1:free';
       const response = await this.openai.chat.completions.create({
         model,
         messages: [

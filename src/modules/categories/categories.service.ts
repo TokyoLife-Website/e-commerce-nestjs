@@ -12,8 +12,8 @@ export class CategoriesService {
   ) {}
   async create(createCategoryDto: CreateCategoryDto) {
     const newCategory = this.categoryRepository.create(createCategoryDto);
-    if (createCategoryDto.parentSlug) {
-      const parent = await this.findOne(createCategoryDto.parentSlug);
+    if (createCategoryDto.parentId) {
+      const parent = await this.findOneById(createCategoryDto.parentId);
       newCategory.parent = parent;
     }
     return await this.categoryRepository.save(newCategory);

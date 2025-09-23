@@ -23,6 +23,10 @@ export class CreateProductDto {
 
   @IsString()
   @IsNotEmpty()
+  slug: string;
+
+  @IsString()
+  @IsNotEmpty()
   description: string;
 
   @IsNumber({ maxDecimalPlaces: 2 })

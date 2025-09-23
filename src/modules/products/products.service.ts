@@ -33,14 +33,6 @@ export class ProductsService {
     private readonly multerService: MulterService,
   ) {}
 
-  // async createProductAttribute(
-  //   createProductAttributeDto: CreateProductAttributeDto,
-  // ) {
-  //   return await this.productAttributeRepository.save(
-  //     createProductAttributeDto,
-  //   );
-  // }
-
   private applySorting(
     query: SelectQueryBuilder<Product>,
     sort?: SortType,
