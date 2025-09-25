@@ -174,7 +174,7 @@ export class ProductsService {
     { limit, offset, page, size }: Pagination,
     dto: SearchProductsDto,
   ): Promise<PaginationResource<Partial<Product>>> {
-    const { keyword, color, price, sort } = dto;
+    const { keyword, color, price, sort, category } = dto;
 
     let query = this.productRepository
       .createQueryBuilder('product')
@@ -210,6 +210,25 @@ export class ProductsService {
     if (color) {
       query.leftJoinAndSelect('product.skus', 'sku');
       query = query.andWhere('LOWER(sku.color) = LOWER(:color)', { color });
+    }
+
+    // Filter by category slug (include all descendants)
+    if (category) {
+      const parentCategory = await this.categoriesService.findOne(category);
+      const tree = await this.categoriesService.findAllByParentSlug(
+        parentCategory.slug,
+      );
+      const collectIds = (node: any): number[] => {
+        const ids = [node.id];
+        if (node.children && node.children.length > 0) {
+          for (const child of node.children) ids.push(...collectIds(child));
+        }
+        return ids;
+      };
+      const categoryIds: number[] = collectIds(tree);
+      query = query.andWhere('product.categoryId IN (:...categoryIds)', {
+        categoryIds,
+      });
     }
 
     const total = await query.getCount();

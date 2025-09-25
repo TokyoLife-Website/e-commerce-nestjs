@@ -16,20 +16,12 @@ export class SearchProductsDto {
 
   @IsOptional()
   @IsString()
+  // category slug to filter products by category (including descendants)
+  category?: string;
+
+  @IsOptional()
+  @IsString()
   color?: string;
-
-  //   @IsOptional()
-  //   @Type(() => Number)
-  //   @IsNumber()
-  //   @Min(1)
-  //   page?: number = 1;
-
-  //   @IsOptional()
-  //   @Type(() => Number)
-  //   @IsNumber()
-  //   @Min(1)
-  //   @Max(100)
-  //   limit?: number = 20;
 
   @IsOptional()
   @Transform(({ value }) => {

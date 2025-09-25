@@ -34,6 +34,12 @@ export class CategoriesController {
 
   @Get(':slug')
   @Public()
+  async findOneBySlug(@Param('slug') slug: string) {
+    return await this.categoriesService.findOne(slug);
+  }
+
+  @Get(':slug/children')
+  @Public()
   async findAllByParentSlug(@Param('slug') slug: string) {
     return await this.categoriesService.findAllByParentSlug(slug);
   }
