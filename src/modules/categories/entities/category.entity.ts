@@ -35,10 +35,4 @@ export class Category {
 
   @OneToMany(() => Product, (product) => product.category)
   products: Product[];
-
-  @BeforeInsert()
-  @BeforeUpdate()
-  generateSlug() {
-    this.slug = slugify(this.name, { lower: true });
-  }
 }
