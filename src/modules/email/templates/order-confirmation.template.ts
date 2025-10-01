@@ -127,7 +127,7 @@ export const generateOrderEmailTemplate = (orderData: Order) => {
             <p><strong>Mã đơn hàng:</strong> <span class="highlight">#${code}</span></p>
             <p><strong>Ngày đặt hàng:</strong> ${new Date(createdAt).toLocaleDateString()}</p>
             <p><strong>Phương thức thanh toán:</strong> ${paymentMethod}</p>
-            <p><strong>Địa chỉ giao hàng:</strong> ${address.detail}, ${address.ward.name}, ${address.district.name}, ${address.province.name}</p>
+            <p><strong>Địa chỉ giao hàng:</strong> ${address}</p>
           </div>
 
           <h3>Chi tiết sản phẩm</h3>

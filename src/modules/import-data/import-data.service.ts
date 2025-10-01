@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as ExcelJS from 'exceljs';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Province } from '../provinces/entities/province.entity';
 import { District } from '../districts/entities/district.entity';
 import { Ward } from '../wards/entities/ward.entity';
@@ -25,6 +25,7 @@ export class ImportDataService {
     private districtRepository: Repository<District>,
     @InjectRepository(Ward)
     private wardRepository: Repository<Ward>,
+    private readonly dataSource: DataSource,
   ) {}
 
   private getFilePath(filename: string): string {
@@ -113,6 +114,39 @@ export class ImportDataService {
     }
     if (promise.length > 0) {
       await Promise.all(promise);
+    }
+  }
+
+  async updateOrdersAddressFromUserDefault() {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      // Update orders.address by joining to users' default address
+      await queryRunner.query(
+        `
+        UPDATE ` +
+          '`order`' +
+          ` o
+        INNER JOIN address a ON a.userId = o.userId AND a.isDefault = 1
+        LEFT JOIN ward w ON w.id = a.wardId
+        LEFT JOIN district d ON d.id = a.districtId
+        LEFT JOIN province p ON p.id = a.provinceId
+        SET o.address = CONCAT(
+          COALESCE(a.detail, ''), ', ',
+          COALESCE(w.name, ''), ', ',
+          COALESCE(d.name, ''), ', ',
+          COALESCE(p.name, '')
+        )
+      `,
+      );
+
+      await queryRunner.commitTransaction();
+    } catch (e) {
+      await queryRunner.rollbackTransaction();
+      throw e;
+    } finally {
+      await queryRunner.release();
     }
   }
 }

@@ -1,6 +1,5 @@
 import { OrderStatus } from 'src/common/enum/orderStatus.enum';
 import { PaymentMethod } from 'src/common/enum/paymentMethode.enum';
-import { Address } from 'src/modules/addresses/entities/address.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import {
   Column,
@@ -31,8 +30,8 @@ export class Order {
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @ManyToOne(() => Address)
-  address: Address;
+  @Column({ type: 'text' })
+  address: string;
 
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   status: OrderStatus;

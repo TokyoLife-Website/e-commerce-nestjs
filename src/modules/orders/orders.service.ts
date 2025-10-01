@@ -124,7 +124,7 @@ export class OrdersService {
       const order = this.orderRepository.create({
         code: orderNumber,
         user,
-        address,
+        address: `${address.detail}, ${address.ward.name}, ${address.district.name}, ${address.province.name}`,
         paymentMethod,
         note,
         status:
@@ -302,7 +302,7 @@ export class OrdersService {
     }
 
     const [orders, total] = await this.orderRepository.findAndCount({
-      relations: ['user', 'address', 'items.sku.product', 'user.avatar'],
+      relations: ['user', 'items.sku.product', 'user.avatar'],
       order: {
         createdAt: 'DESC',
       },
@@ -326,10 +326,6 @@ export class OrdersService {
       relations: [
         'user',
         'user.avatar',
-        'address',
-        'address.province',
-        'address.district',
-        'address.ward',
         'items.sku.product',
         'orderStatusHistory',
       ],

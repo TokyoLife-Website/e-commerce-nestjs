@@ -35,4 +35,13 @@ export class ImportDataCommand {
     await this.productsService['productRepository'].save(products);
     console.log('Updated finalPrice for all products!');
   }
+
+  @Command({
+    command: 'orders-address-from-default',
+    description: "Update orders.address from user's default address",
+  })
+  async updateOrdersAddressFromUserDefault(): Promise<void> {
+    await this.importDataService.updateOrdersAddressFromUserDefault();
+    console.log('Updated orders.address from default user address!');
+  }
 }
