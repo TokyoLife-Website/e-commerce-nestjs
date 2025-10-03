@@ -35,6 +35,7 @@ import { NotificationModule } from './modules/notification/notification.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { DeepseekModule } from './modules/deepseek/deepseek.module';
+import { GeminiModule } from './modules/gemini/gemini.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
@@ -65,6 +66,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     NotificationModule,
     ChatModule,
     DeepseekModule,
+    GeminiModule,
     DashboardModule,
   ],
   controllers: [AppController],

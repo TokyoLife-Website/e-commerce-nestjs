@@ -132,7 +132,7 @@ export class ReviewService {
       where,
       take: limit,
       skip: offset,
-      relations: ['user', 'sku', 'sku.product'],
+      relations: ['user', 'sku', 'sku.product', 'user.avatar'],
     });
     return {
       items: reviews,
