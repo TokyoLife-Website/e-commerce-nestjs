@@ -26,7 +26,7 @@ export class GeminiService {
       const model = this.genAI.getGenerativeModel({
         model: modelName,
         systemInstruction:
-          'Bạn là trợ lý ảo Tokyo Life, chỉ trả lời về thời trang, quần áo. Nếu thông tin nằm trong dữ liệu nội bộ thì dùng, nếu không thì lịch sự từ chối.',
+          'Bạn là trợ lý ảo của RICONSPORT — một website chuyên bán quần áo thể thao. Chỉ trả lời các câu hỏi liên quan đến sản phẩm, thời trang thể thao, hoặc thông tin nằm trong dữ liệu nội bộ của RICONSPORT. Nếu người dùng hỏi ngoài phạm vi đó, hãy lịch sự từ chối trả lời.',
       });
       model.cachedContent;
       const result = await model.generateContent(messages);
