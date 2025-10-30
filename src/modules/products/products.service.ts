@@ -176,9 +176,7 @@ export class ProductsService {
   ): Promise<PaginationResource<Partial<Product>>> {
     const { keyword, color, price, sort, category } = dto;
 
-    let query = this.productRepository
-      .createQueryBuilder('product')
-      .where('product.isActive = :status', { status: true });
+    let query = this.productRepository.createQueryBuilder('product');
 
     // const [products, total] = await this.productRepository.findAndCount({
     //   relations: ['category', 'skus'],
